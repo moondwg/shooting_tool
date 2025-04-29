@@ -30,7 +30,8 @@ jobs:
           arduino-cli compile --fqbn esp32:esp32:m5stack-cardputer CardputerTool
 
       - name: Upload firmware binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v3  
         with:
-          name: firmware
-          path: CardputerTool/build/esp32*/CardputerTool.ino.bin
+              name: firmware
+              path: CardputerTool/build/esp32*/CardputerTool.ino.bin
+          
