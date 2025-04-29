@@ -6,8 +6,8 @@ String inputString = "";
 bool inputComplete = false;
 
 void setup() {
-  M5.begin();
-  M5.CardKB.begin();
+  M5Cardputer.begin();
+  M5Cardputer.CardKB.begin();
   Serial.begin(115200);
 
   if (!SD.begin()) {
@@ -19,8 +19,8 @@ void setup() {
 }
 
 void loop() {
-  if (M5.CardKB.available()) {
-    char c = M5.CardKB.read();
+  if (M5Cardputer.CardKB.available()) {
+    char c = M5Cardputer.CardKB.read();
     if (c == '\n') {
       inputComplete = true;
     } else {
@@ -38,9 +38,9 @@ void waitForKey() {
 }
 
 String getInput(String prompt) {
-  M5.Lcd.clear();
-  M5.Lcd.setCursor(0, 0);
-  M5.Lcd.println(prompt);
+  M5Cardputer.Display.clear();
+  M5Cardputer.Display.setCursor(0, 0);
+  M5Cardputer.Display.println(prompt);
   inputString = "";
   inputComplete = false;
   while (!inputComplete) {
@@ -51,12 +51,12 @@ String getInput(String prompt) {
 
 void mainMenu() {
   while (true) {
-    M5.Lcd.clear();
-    M5.Lcd.setCursor(0, 0);
-    M5.Lcd.println("== Shooting Tools ==");
-    M5.Lcd.println("(1) Manage Profiles");
-    M5.Lcd.println("(2) MOA/MIL Calculator");
-    M5.Lcd.println("(3) Exit");
+    M5Cardputer.Display.clear();
+    M5Cardputer.Display.setCursor(0, 0);
+    M5Cardputer.Display.println("== Shooting Tools ==");
+    M5Cardputer.Display.println("(1) Manage Profiles");
+    M5Cardputer.Display.println("(2) MOA/MIL Calculator");
+    M5Cardputer.Display.println("(3) Exit");
 
     inputString = "";
     inputComplete = false;
@@ -69,8 +69,8 @@ void mainMenu() {
     } else if (inputString == "2") {
       moaMilCalculator();
     } else if (inputString == "3") {
-      M5.Lcd.clear();
-      M5.Lcd.println("Goodbye!");
+      M5Cardputer.Display.clear();
+      M5Cardputer.Display.println("Goodbye!");
       delay(2000);
       ESP.restart();
     }
@@ -79,12 +79,12 @@ void mainMenu() {
 
 void manageProfiles() {
   while (true) {
-    M5.Lcd.clear();
-    M5.Lcd.setCursor(0, 0);
-    M5.Lcd.println("== Manage Profiles ==");
-    M5.Lcd.println("(1) New Profile");
-    M5.Lcd.println("(2) View Profiles");
-    M5.Lcd.println("(3) Back");
+    M5Cardputer.Display.clear();
+    M5Cardputer.Display.setCursor(0, 0);
+    M5Cardputer.Display.println("== Manage Profiles ==");
+    M5Cardputer.Display.println("(1) New Profile");
+    M5Cardputer.Display.println("(2) View Profiles");
+    M5Cardputer.Display.println("(3) Back");
 
     inputString = "";
     inputComplete = false;
@@ -121,9 +121,9 @@ void newProfile() {
     file.close();
   }
 
-  M5.Lcd.clear();
-  M5.Lcd.setCursor(0, 0);
-  M5.Lcd.println("Profile Saved.");
+  M5Cardputer.Display.clear();
+  M5Cardputer.Display.setCursor(0, 0);
+  M5Cardputer.Display.println("Profile Saved.");
   delay(1500);
 }
 
@@ -132,25 +132,25 @@ void viewProfiles() {
   int index = 1;
   String profiles[20];
   
-  M5.Lcd.clear();
-  M5.Lcd.setCursor(0, 0);
-  M5.Lcd.println("== Profiles ==");
+  M5Cardputer.Display.clear();
+  M5Cardputer.Display.setCursor(0, 0);
+  M5Cardputer.Display.println("== Profiles ==");
 
   File file = root.openNextFile();
   while (file) {
     if (file.isDirectory()) {
       profiles[index] = file.name();
-      M5.Lcd.print("(");
-      M5.Lcd.print(index);
-      M5.Lcd.print(") ");
-      M5.Lcd.println(file.name());
+      M5Cardputer.Display.print("(");
+      M5Cardputer.Display.print(index);
+      M5Cardputer.Display.print(") ");
+      M5Cardputer.Display.println(file.name());
       index++;
     }
     file = root.openNextFile();
   }
 
   if (index == 1) {
-    M5.Lcd.println("No profiles found.");
+    M5Cardputer.Display.println("No profiles found.");
     delay(2000);
     return;
   }
@@ -171,18 +171,18 @@ void showProfile(String profileName) {
   String path = "/" + profileName + "/settings.txt";
   File file = SD.open(path);
   if (!file) {
-    M5.Lcd.clear();
-    M5.Lcd.println("Profile not found.");
+    M5Cardputer.Display.clear();
+    M5Cardputer.Display.println("Profile not found.");
     delay(2000);
     return;
   }
 
-  M5.Lcd.clear();
-  M5.Lcd.setCursor(0, 0);
-  M5.Lcd.println("== " + profileName + " ==");
+  M5Cardputer.Display.clear();
+  M5Cardputer.Display.setCursor(0, 0);
+  M5Cardputer.Display.println("== " + profileName + " ==");
 
   while (file.available()) {
-    M5.Lcd.println(file.readStringUntil('\n'));
+    M5Cardputer.Display.println(file.readStringUntil('\n'));
   }
   file.close();
 
@@ -190,9 +190,9 @@ void showProfile(String profileName) {
 }
 
 void moaMilCalculator() {
-  M5.Lcd.clear();
-  M5.Lcd.setCursor(0, 0);
-  M5.Lcd.println("MOA/MIL Calculator");
+  M5Cardputer.Display.clear();
+  M5Cardputer.Display.setCursor(0, 0);
+  M5Cardputer.Display.println("MOA/MIL Calculator");
 
   String targetDistance = getInput("Distance to target (yds):");
   String impactOffset = getInput("Impact offset (inches):");
@@ -206,15 +206,15 @@ void moaMilCalculator() {
   float clicks = moa * clicksPerMOAValue;
   float mil = (offsetInches / (distanceYards * 36)) * 1000;
 
-  M5.Lcd.clear();
-  M5.Lcd.setCursor(0, 0);
-  M5.Lcd.println("== Adjustment ==");
-  M5.Lcd.print("MOA: ");
-  M5.Lcd.println(moa, 2);
-  M5.Lcd.print("Clicks: ");
-  M5.Lcd.println(clicks, 1);
-  M5.Lcd.print("MIL: ");
-  M5.Lcd.println(mil, 2);
+  M5Cardputer.Display.clear();
+  M5Cardputer.Display.setCursor(0, 0);
+  M5Cardputer.Display.println("== Adjustment ==");
+  M5Cardputer.Display.print("MOA: ");
+  M5Cardputer.Display.println(moa, 2);
+  M5Cardputer.Display.print("Clicks: ");
+  M5Cardputer.Display.println(clicks, 1);
+  M5Cardputer.Display.print("MIL: ");
+  M5Cardputer.Display.println(mil, 2);
 
   waitForKey();
 }
