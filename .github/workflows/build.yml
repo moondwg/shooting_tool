@@ -1,1 +1,38 @@
+name: Build M5Cardputer Sketch
 
+on:
+  push:
+    paths:
+      - 'src/**.ino'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Arduino CLI
+      uses: arduino/setup-arduino-cli@v1
+      with:
+        version: 'latest'
+
+    - name: Install ESP32 board package
+      run: |
+        arduino-cli core update-index
+        arduino-cli core install esp32:esp32
+
+    - name: Compile sketch
+      run: |
+        arduino-cli compile \
+          --fqbn esp32:esp32:m5stack_core2 \
+          --output-dir ./build \
+          ./src
+
+    - name: Upload firmware binary
+      uses: actions/upload-artifact@v3
+      with:
+        name: firmware-bin
+        path: build/*.bin
