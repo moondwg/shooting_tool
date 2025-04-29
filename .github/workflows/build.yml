@@ -15,15 +15,19 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Arduino CLI
-        uses: arduino/setup-arduino-cli@v1
-        with:
-          version: 0.35.2
-
-      - name: Install M5Stack platform
+      - name: Install Arduino CLI manually
         run: |
-          arduino-cli core update-index --additional-urls https://m5stack.oss-cn-shenzhen.aliyuncs.com/resource/arduino/package_m5stack_index.json
-          arduino-cli core install m5stack:esp32 --additional-urls https://m5stack.oss-cn-shenzhen.aliyuncs.com/resource/arduino/package_m5stack_index.json
+          wget https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Linux_64bit.tar.gz
+          tar -xzf arduino-cli_latest_Linux_64bit.tar.gz
+          sudo mv arduino-cli /usr/local/bin/
+          arduino-cli version
+
+      - name: Configure Arduino CLI and install platform
+        run: |
+          arduino-cli config init
+          arduino-cli config add board_manager.additional_urls https://m5stack.oss-cn-shenzhen.aliyuncs.com/resource/arduino/package_m5stack_index.json
+          arduino-cli core update-index
+          arduino-cli core install m5stack:esp32
 
       - name: Install M5Cardputer library
         run: arduino-cli lib install M5Cardputer
@@ -31,12 +35,12 @@ jobs:
       - name: Compile firmware
         run: |
           mkdir -p firmware
-          arduino-cli compile --fqbn m5stack:esp32:m5stack_cardputer ./CardputerFirmware --output-dir ./firmware
+          arduino-cli compile --fqbn m5stack:esp32:m5stack_cardputer ./ --output-dir ./firmware
 
-      - name: Commit .bin file to repo
+      - name: Commit .bin to repo
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
           git add firmware/*.bin || true
-          git commit -m "Auto-build: add .bin firmware [skip ci]" || echo "No changes"
+          git commit -m "Auto-build: add compiled .bin firmware [skip ci]" || echo "No changes"
           git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} HEAD:main
