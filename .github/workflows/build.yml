@@ -31,7 +31,6 @@ jobs:
           arduino-cli lib install M5Cardputer
           arduino-cli lib install M5GFX
           arduino-cli lib install SD
-          arduino-cli lib install FS
 
       - name: Compile Sketch
         run: |
