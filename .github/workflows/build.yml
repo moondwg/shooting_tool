@@ -1,4 +1,4 @@
-name: Build Cardputer Sketch
+name: Build and Commit Cardputer Firmware
 
 on:
   push:
@@ -8,26 +8,33 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
 
       - name: Set up Arduino CLI
         uses: arduino/setup-arduino-cli@v1
         with:
-          version: 0.35.2
+          version: latest
 
-      - name: Install ESP32 board
+      - name: Install M5Stack platform
         run: |
-          arduino-cli core update-index
-          arduino-cli core install esp32:esp32
+          arduino-cli core update-index --additional-urls https://m5stack.oss-cn-shenzhen.aliyuncs.com/resource/arduino/package_m5stack_index.json
+          arduino-cli core install m5stack:esp32 --additional-urls https://m5stack.oss-cn-shenzhen.aliyuncs.com/resource/arduino/package_m5stack_index.json
 
-      - name: Build the sketch
+      - name: Install M5Cardputer library
+        run: arduino-cli lib install M5Cardputer
+
+      - name: Compile firmware
+        run: arduino-cli compile --fqbn m5stack:esp32:m5stack_cardputer ./CardputerFirmware --output-dir ./firmware
+
+      - name: Commit .bin file back to repo
         run: |
-          arduino-cli compile --fqbn esp32:esp32:m5stack_cardputer ./CardputerTool
-
-      - name: Upload binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: cardputer-firmware
-          path: ./CardputerTool/build/esp32.*/CardputerTool.ino.bin
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          git add firmware/*.bin
+          git commit -m "Auto-build: add compiled .bin firmware [skip ci]" || echo "No changes to commit"
+          git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} HEAD:main
