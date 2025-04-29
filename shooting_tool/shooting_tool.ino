@@ -22,24 +22,20 @@ void setup() {
 
 void loop() {
   M5Cardputer.update();
-  if (M5Cardputer.Keyboard.isChange() && M5Cardputer.Keyboard.isPressed()) {
-    char c = M5Cardputer.Keyboard.getKey();
-    if (c == '\n' || c == '\r') {
-      inputComplete = true;
-    } else if (c == 0x08 || c == 127) { // Backspace support
-      if (inputString.length() > 0) {
-        inputString.remove(inputString.length() - 1);
+  if (M5Cardputer.Keyboard.isChange()) {
+    if (M5Cardputer.Keyboard.isPressed()) {
+      Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
+      for (auto c : status.word) {
+        if (c == '\n' || c == '\r') {
+          inputComplete = true;
+        } else if (c != 0) {
+          inputString += c;
+        }
       }
-    } else if (c != 0) {
-      inputString += c;
     }
-
-    // Live preview of input
-    M5Cardputer.Display.fillRect(0, 16, 240, 16, BLACK); // Clear input line
-    M5Cardputer.Display.setCursor(0, 1);
-    M5Cardputer.Display.print(inputString);
   }
 }
+
 
 
 void waitForKey() {
