@@ -2,28 +2,38 @@ name: Build Firmware
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Set up Arduino CLI manually
+      - name: Install Arduino CLI
         run: |
           curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
-          echo "$HOME/bin" >> $GITHUB_PATH
+          sudo mv bin/arduino-cli /usr/local/bin/
+
+      - name: Add M5Stack Core
+        run: |
           arduino-cli config init
+          arduino-cli config add board_manager.additional_urls https://m5stack.oss-cn-shenzhen.aliyuncs.com/resource/arduino/package_m5stack_index.json
           arduino-cli core update-index
           arduino-cli core install m5stack:esp32
-          arduino-cli lib install "M5Cardputer"
 
-      - name: Compile firmware
+      - name: Install Libraries
+        run: |
+          arduino-cli lib install M5Cardputer
+          arduino-cli lib install M5GFX
+          arduino-cli lib install SD
+          arduino-cli lib install FS
+
+      - name: Compile Sketch
         run: |
           mkdir -p firmware
           arduino-cli compile --fqbn m5stack:esp32:m5stack_cardputer ./shooting_tool --output-dir ./firmware
