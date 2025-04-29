@@ -1,46 +1,29 @@
-name: Build and Commit Cardputer Firmware
+name: Build Firmware
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
-        with:
-          persist-credentials: false
 
-      - name: Install Arduino CLI manually
+      - name: Set up Arduino CLI manually
         run: |
-          wget https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Linux_64bit.tar.gz
-          tar -xzf arduino-cli_latest_Linux_64bit.tar.gz
-          sudo mv arduino-cli /usr/local/bin/
-          arduino-cli version
-
-      - name: Configure Arduino CLI and install platform
-        run: |
+          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
+          echo "$HOME/bin" >> $GITHUB_PATH
           arduino-cli config init
-          arduino-cli config add board_manager.additional_urls https://m5stack.oss-cn-shenzhen.aliyuncs.com/resource/arduino/package_m5stack_index.json
           arduino-cli core update-index
           arduino-cli core install m5stack:esp32
-
-      - name: Install M5Cardputer library
-        run: arduino-cli lib install M5Cardputer
+          arduino-cli lib install "M5Cardputer"
 
       - name: Compile firmware
         run: |
           mkdir -p firmware
           arduino-cli compile --fqbn m5stack:esp32:m5stack_cardputer ./shooting_tool --output-dir ./firmware
-
-      - name: Commit .bin to repo
-        run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
-          git add firmware/*.bin || true
-          git commit -m "Auto-build: add compiled .bin firmware [skip ci]" || echo "No changes"
-          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} HEAD:main
