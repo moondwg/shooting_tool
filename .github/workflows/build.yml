@@ -1,4 +1,4 @@
-name: Build and Commit Cardputer Firmware
+name: Build Arduino Sketch
 
 on:
   push:
@@ -12,29 +12,23 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          persist-credentials: false
 
       - name: Set up Arduino CLI
         uses: arduino/setup-arduino-cli@v1
         with:
           version: latest
 
-      - name: Install M5Stack platform
+      - name: Install platform and libraries
         run: |
-          arduino-cli core update-index --additional-urls https://m5stack.oss-cn-shenzhen.aliyuncs.com/resource/arduino/package_m5stack_index.json
-          arduino-cli core install m5stack:esp32 --additional-urls https://m5stack.oss-cn-shenzhen.aliyuncs.com/resource/arduino/package_m5stack_index.json
+          arduino-cli core update-index
+          arduino-cli core install arduino:avr
 
-      - name: Install M5Cardputer library
-        run: arduino-cli lib install M5Cardputer
-
-      - name: Compile firmware
-        run: arduino-cli compile --fqbn m5stack:esp32:m5stack_cardputer ./CardputerFirmware --output-dir ./firmware
-
-      - name: Commit .bin file back to repo
+      - name: Compile sketch
         run: |
-          git config --global user.name 'github-actions'
-          git config --global user.email 'github-actions@github.com'
-          git add firmware/*.bin
-          git commit -m "Auto-build: add compiled .bin firmware [skip ci]" || echo "No changes to commit"
-          git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} HEAD:main
+          arduino-cli compile --fqbn arduino:avr:uno ./MySketch --output-dir ./build
+
+      - name: Upload .bin artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: firmware-bin
+          path: ./build/*.bin
