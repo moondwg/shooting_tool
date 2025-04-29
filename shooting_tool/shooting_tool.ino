@@ -22,19 +22,25 @@ void setup() {
 
 void loop() {
   M5Cardputer.update();
-  auto keyEvent = M5Cardputer.Keyboard.getKeyEvent();
-  if (keyEvent.has_value()) {
-    auto evt = keyEvent.value();
-    if (evt.type == Keyboard_Event::Press) {
-      char c = evt.ascii;
-      if (c == '\n' || c == '\r') {
-        inputComplete = true;
-      } else if (c != 0) {
-        inputString += c;
+  if (M5Cardputer.Keyboard.isChange() && M5Cardputer.Keyboard.isPressed()) {
+    char c = M5Cardputer.Keyboard.getKey();
+    if (c == '\n' || c == '\r') {
+      inputComplete = true;
+    } else if (c == 0x08 || c == 127) { // Backspace support
+      if (inputString.length() > 0) {
+        inputString.remove(inputString.length() - 1);
       }
+    } else if (c != 0) {
+      inputString += c;
     }
+
+    // Live preview of input
+    M5Cardputer.Display.fillRect(0, 16, 240, 16, BLACK); // Clear input line
+    M5Cardputer.Display.setCursor(0, 1);
+    M5Cardputer.Display.print(inputString);
   }
 }
+
 
 void waitForKey() {
   inputString = "";
