@@ -23,9 +23,8 @@ void setup() {
 void loop() {
   M5Cardputer.update();
   if (M5Cardputer.Keyboard.isChange()) {
-    auto keyEvent = M5Cardputer.Keyboard.getKeyEvent();
-    if (keyEvent.event == KEY_PRESS) {
-      char c = keyEvent.charCode;
+    if (M5Cardputer.Keyboard.isPressed()) {
+      char c = M5Cardputer.Keyboard.getKey();
       if (c == '\n' || c == '\r') {
         inputComplete = true;
       } else if (c != 0) {
