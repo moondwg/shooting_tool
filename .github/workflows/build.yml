@@ -35,7 +35,7 @@ jobs:
       - name: Compile firmware
         run: |
           mkdir -p firmware
-          arduino-cli compile --fqbn m5stack:esp32:m5stack_cardputer ./ --output-dir ./firmware
+          arduino-cli compile --fqbn m5stack:esp32:m5stack_cardputer ./shooting_tool --output-dir ./firmware
 
       - name: Commit .bin to repo
         run: |
