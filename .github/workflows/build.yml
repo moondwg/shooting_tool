@@ -1,8 +1,9 @@
-name: Build Firmware
+name: Build M5Cardputer Sketch
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -10,13 +11,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Install Arduino CLI
         run: |
           curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
-          mv bin/arduino-cli /usr/local/bin/
+          sudo mv bin/arduino-cli /usr/local/bin
 
       - name: Set up Arduino CLI
         run: |
@@ -24,12 +25,12 @@ jobs:
           arduino-cli core update-index
           arduino-cli core install esp32:esp32
 
-      - name: Compile the sketch
+      - name: Compile sketch
         run: |
-          arduino-cli compile --fqbn esp32:esp32:m5stack-cardputer .
+          arduino-cli compile --fqbn esp32:esp32:m5stack-cardputer CardputerTool
 
-      - name: Upload firmware
+      - name: Upload firmware binary
         uses: actions/upload-artifact@v3
         with:
-          name: cardputer-firmware
-          path: ./build/esp32*/CardputerProject.ino.bin
+          name: firmware
+          path: CardputerTool/build/esp32*/CardputerTool.ino.bin
