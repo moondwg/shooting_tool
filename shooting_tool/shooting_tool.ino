@@ -22,9 +22,11 @@ void setup() {
 
 void loop() {
   M5Cardputer.update();
-  if (M5Cardputer.Keyboard.isChange()) {
-    if (M5Cardputer.Keyboard.isPressed()) {
-      char c = M5Cardputer.Keyboard.getKey();
+  auto keyEvent = M5Cardputer.Keyboard.getKeyEvent();
+  if (keyEvent.has_value()) {
+    auto evt = keyEvent.value();
+    if (evt.type == Keyboard_Event::Press) {
+      char c = evt.ascii;
       if (c == '\n' || c == '\r') {
         inputComplete = true;
       } else if (c != 0) {
