@@ -1,13 +1,16 @@
 #include <M5Cardputer.h>
+#include <M5CardKB.h>
 #include <SD.h>
 #include <FS.h>
+
+M5CardKB keyboard;
 
 String inputString = "";
 bool inputComplete = false;
 
 void setup() {
   M5.begin();
-  M5.CardKB.begin();
+  keyboard.begin();
   Serial.begin(115200);
 
   if (!SD.begin()) {
@@ -20,20 +23,18 @@ void setup() {
 
 void loop() {
   M5.update();
-  if (M5.CardKB.available()) {
-    char c = M5.CardKB.read();
-
+  if (keyboard.available()) {
+    char c = keyboard.read();
     if (c == '\n') {
       inputComplete = true;
-    } else if (c == '\b' || c == 127) { // Handle backspace
+    } else if (c == '\b' || c == 127) {
       if (inputString.length() > 0) {
         inputString.remove(inputString.length() - 1);
-        // Move cursor back, print space, move cursor back again to "erase" character
         M5.Lcd.print("\b \b");
       }
     } else {
       inputString += c;
-      M5.Lcd.print(c); // Echo character to screen
+      M5.Lcd.print(c);
     }
   }
 }
