@@ -85,8 +85,8 @@ void processInput(String userInput) {
         printInstruction("Type 'M' for MIL or 'A' for MOA.");
       }
       break;
-
-    case STEP_DISTANCE:
+    
+case STEP_DISTANCE: {
       distance = userInput.toFloat();
       step = STEP_DONE;
 
@@ -104,6 +104,7 @@ void processInput(String userInput) {
       step = STEP_ELEV_SIGN;
       printInstruction("Enter elevation direction '+' = Up, '-' = Down:");
       break;
+    }
 
     default:
       break;
