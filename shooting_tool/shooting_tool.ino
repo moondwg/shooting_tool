@@ -50,16 +50,12 @@ void setup() {
 
 void loop() {
   M5Cardputer.update();
-  auto keyEvent = M5Cardputer.Keyboard.getKeyEvent();
-  if (keyEvent.has_value()) {
-    auto evt = keyEvent.value();
-    if (evt.type == Keyboard_Event::Press) {
-      char c = evt.ascii;
-      if (c == '\n' || c == '\r') {
-        inputComplete = true;
-      } else if (c != 0) {
-        inputString += c;
-      }
+  char c = M5Cardputer.Keyboard.getKey();  // Use getKey() method instead
+  if (c != 0) {
+    if (c == '\n' || c == '\r') {
+      inputComplete = true;
+    } else {
+      inputString += c;
     }
   }
 }
