@@ -36,3 +36,9 @@ jobs:
         run: |
           mkdir -p firmware
           arduino-cli compile --fqbn m5stack:esp32:m5stack_cardputer ./shooting_tool --output-dir ./firmware
+
+      - name: Upload firmware binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware
+          path: firmware/shooting_tool.ino.bin
