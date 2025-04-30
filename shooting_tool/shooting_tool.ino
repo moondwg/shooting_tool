@@ -1,26 +1,3 @@
-#include "M5Cardputer.h"
-#include "M5GFX.h"
-
-M5Canvas canvas(&M5Cardputer.Display);
-String inputBuffer = "> ";
-int currentStep = 0;
-float elevation = 0.0;
-float windage = 0.0;
-float distance = 0.0;
-bool useMOA = true;
-
-void drawInputPrompt(const String& prompt, const String& example = "") {
-  M5Cardputer.Display.clear();
-  canvas.clear();
-  canvas.setCursor(0, 0);
-  canvas.println(prompt);
-  if (example.length() > 0) {
-    canvas.println("Example: " + example);
-  }
-  canvas.pushSprite(4, 4);
-  M5Cardputer.Display.drawString(inputBuffer, 4, M5Cardputer.Display.height() - 24);
-}
-
 void resetAll() {
   currentStep = 0;
   elevation = 0.0;
@@ -29,21 +6,6 @@ void resetAll() {
   useMOA = true;
   inputBuffer = "> ";
   drawInputPrompt("Step 1 of 4: Enter bullet impact ELEVATION (+ above, - below)", "-3.5");
-}
-
-void setup() {
-  auto cfg = M5.config();
-  M5Cardputer.begin(cfg, true);
-  M5Cardputer.Display.setRotation(1);
-  M5Cardputer.Display.setTextSize(0.5);
-  M5Cardputer.Display.setTextFont(&fonts::FreeSerifBoldItalic18pt7b);
-
-  canvas.setTextFont(&fonts::FreeSerifBoldItalic18pt7b);
-  canvas.setTextSize(0.5);
-  canvas.createSprite(M5Cardputer.Display.width() - 8, M5Cardputer.Display.height() - 36);
-  canvas.setTextScroll(true);
-
-  resetAll();
 }
 
 void showSummary() {
@@ -83,14 +45,26 @@ void loop() {
         switch (currentStep) {
           case 0:
             elevation = userInput.toFloat();
+            if (elevation == 0) {
+              drawInputPrompt("Invalid input. Please enter a valid elevation.", "-3.5");
+              return;
+            }
             drawInputPrompt("Step 2 of 4: Enter bullet impact WINDAGE (+ right, - left)", "+1.2");
             break;
           case 1:
             windage = userInput.toFloat();
+            if (windage == 0) {
+              drawInputPrompt("Invalid input. Please enter a valid windage.", "+1.2");
+              return;
+            }
             drawInputPrompt("Step 3 of 4: Enter DISTANCE to target (yards)", "100");
             break;
           case 2:
             distance = userInput.toFloat();
+            if (distance <= 0) {
+              drawInputPrompt("Invalid input. Please enter a positive distance.", "100");
+              return;
+            }
             drawInputPrompt("Step 4 of 4: Enter unit type: MOA or MIL", "MOA");
             break;
           case 3:
