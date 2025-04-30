@@ -51,13 +51,22 @@ void setup() {
 void loop() {
   M5Cardputer.update();
 
-  // Detect key press using the getKey() method
-  char c = M5Cardputer.Keyboard.getKey();  
-  if (c != 0) {  // If a key is pressed
-    if (c == '\n' || c == '\r') {
+  // Get the key value when a key is pressed
+  uint8_t key = M5Cardputer.Keyboard.getKey();
+  
+  if (key != 0) {  // If a key is pressed
+    char keyChar = (char)key;  // Convert the key code to char
+    inputString += keyChar;    // Append the key character to the input string
+    
+    // Optional: Display the key pressed on the screen for debugging
+    M5Cardputer.Display.clear();
+    M5Cardputer.Display.setCursor(0, 0);
+    M5Cardputer.Display.print("Key Pressed: ");
+    M5Cardputer.Display.println(keyChar);
+    
+    // Check for Enter key or other stopping condition
+    if (key == '\n' || key == '\r') {
       inputComplete = true;
-    } else {
-      inputString += c;
     }
   }
 }
