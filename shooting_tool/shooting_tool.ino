@@ -23,26 +23,25 @@ void setup() {
 
 void loop() {
   M5Cardputer.update();
-  if (M5Cardputer.Keyboard.isChange()) {
-    if (M5Cardputer.Keyboard.isKeyPressed()) {
-      char key = M5Cardputer.Keyboard.getKeyEvent().char_code;
-      if (key == '\n' || key == '\r') {
-        inputComplete = true;
-      } else if (key == 8) { // Backspace
-        if (inputString.length() > 0) {
-          inputString.remove(inputString.length() - 1);
-        }
-      } else {
-        inputString += key;
+  char key = M5Cardputer.Keyboard.getKey();
+  if (key) {
+    if (key == '\n' || key == '\r') {
+      inputComplete = true;
+    } else if (key == 8) {  // Backspace
+      if (inputString.length() > 0) {
+        inputString.remove(inputString.length() - 1);
       }
-
-      // Optional: display typed input live (debug or visual feedback)
-      M5Cardputer.Display.clear();
-      M5Cardputer.Display.setCursor(0, 0);
-      M5Cardputer.Display.println(inputString);
+    } else {
+      inputString += key;
     }
+
+    // Optional: live feedback
+    M5Cardputer.Display.clear();
+    M5Cardputer.Display.setCursor(0, 0);
+    M5Cardputer.Display.println(inputString);
   }
 }
+
 
 
 void waitForKey() {
