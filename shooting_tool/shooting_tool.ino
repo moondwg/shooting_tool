@@ -41,14 +41,14 @@ void setup() {
   auto cfg = M5.config();
   M5Cardputer.begin(cfg, true);
   M5Cardputer.Display.setRotation(1);
-  M5Cardputer.Display.setTextSize(1);
+  M5Cardputer.Display.setTextSize(2);
   M5Cardputer.Display.setTextColor(TERMINAL_GREEN, TERMINAL_BG);
   M5Cardputer.Display.fillScreen(TERMINAL_BG);
   
   M5Cardputer.Display.setTextFont(&fonts::lgfxJapanGothic_8);  // readable mono-style font
   
   canvas.setTextFont(&fonts::lgfxJapanGothic_8);
-  canvas.setTextSize(1);
+  canvas.setTextSize(2);
   canvas.setTextColor(TERMINAL_GREEN, TERMINAL_BG);
   canvas.createSprite(M5Cardputer.Display.width() - 8, M5Cardputer.Display.height() - 36);
   canvas.setTextScroll(true);
