@@ -6,8 +6,11 @@ String inputString = "";
 bool inputComplete = false;
 
 void setup() {
-  M5Cardputer.begin();
-  M5Cardputer.Display.setCursor(0, 0);
+  auto cfg = M5.config();
+  M5Cardputer.begin(cfg, true);
+  M5Cardputer.Display.setRotation(1);
+  M5Cardputer.Display.setTextColor(GREEN);
+  M5Cardputer.Display.setTextSize(1);
   Serial.begin(115200);
 
   if (!SD.begin()) {
@@ -19,15 +22,19 @@ void setup() {
 }
 
 void loop() {
-  M5Cardputer.update();  // Required to process keyboard input
+  M5Cardputer.update();
   if (M5Cardputer.Keyboard.isChange()) {
-    if (M5Cardputer.Keyboard.isPressed()) {
-      char c = M5Cardputer.Keyboard.read();
-      if (c == '\n') {
-        inputComplete = true;
-      } else {
-        inputString += c;
-        M5Cardputer.Display.print(c);  // Echo input
+    for (int row = 0; row < 4; row++) {
+      for (int col = 0; col < 10; col++) {
+        auto coord = m5::Point2D_t{(uint8_t)col, (uint8_t)row};
+        if (M5Cardputer.Keyboard.isPressed(coord)) {
+          char keyChar = M5Cardputer.Keyboard.getChar(coord);
+          if (keyChar == '\n') {
+            inputComplete = true;
+          } else {
+            inputString += keyChar;
+          }
+        }
       }
     }
   }
@@ -135,7 +142,7 @@ void viewProfiles() {
   File root = SD.open("/");
   int index = 1;
   String profiles[20];
-
+  
   M5Cardputer.Display.clear();
   M5Cardputer.Display.setCursor(0, 0);
   M5Cardputer.Display.println("== Profiles ==");
