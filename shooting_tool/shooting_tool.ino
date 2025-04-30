@@ -24,21 +24,26 @@ void setup() {
 void loop() {
   M5Cardputer.update();
   if (M5Cardputer.Keyboard.isChange()) {
-    for (int row = 0; row < 4; row++) {
-      for (int col = 0; col < 10; col++) {
-        auto coord = m5::Point2D_t{(uint8_t)col, (uint8_t)row};
-        if (M5Cardputer.Keyboard.isPressed(coord)) {
-          char keyChar = M5Cardputer.Keyboard.getChar(coord);
-          if (keyChar == '\n') {
-            inputComplete = true;
-          } else {
-            inputString += keyChar;
-          }
+    if (M5Cardputer.Keyboard.isKeyPressed()) {
+      char key = M5Cardputer.Keyboard.getKeyEvent().char_code;
+      if (key == '\n' || key == '\r') {
+        inputComplete = true;
+      } else if (key == 8) { // Backspace
+        if (inputString.length() > 0) {
+          inputString.remove(inputString.length() - 1);
         }
+      } else {
+        inputString += key;
       }
+
+      // Optional: display typed input live (debug or visual feedback)
+      M5Cardputer.Display.clear();
+      M5Cardputer.Display.setCursor(0, 0);
+      M5Cardputer.Display.println(inputString);
     }
   }
 }
+
 
 void waitForKey() {
   inputString = "";
