@@ -50,12 +50,13 @@ void setup() {
 
 void loop() {
   M5Cardputer.update();
-  char c = M5Cardputer.Keyboard.getKey();  // Use getKey() method instead
+  Point2D_t keyCoor = {0, 0}; // Create a Point2D_t object for key coordinates
+  uint8_t c = M5Cardputer.Keyboard.getKey(keyCoor);  // Use getKey with coordinates
   if (c != 0) {
     if (c == '\n' || c == '\r') {
       inputComplete = true;
     } else {
-      inputString += c;
+      inputString += (char)c;
     }
   }
 }
