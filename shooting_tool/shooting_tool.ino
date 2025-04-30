@@ -1,3 +1,101 @@
+#include <M5Cardputer.h>
+#include <LGFX_AUTODETECT.hpp>
+
+// State variables
+int currentStep = 0;
+float elevation = 0.0;
+float windage = 0.0;
+float distance = 0.0;
+bool useMOA = true;
+String inputBuffer = "> ";
+
+LGFX_Sprite canvas(&M5Cardputer.Display);
+
+// Function declarations
+void drawInputPrompt(const String& prompt, const String& example);
+void resetAll();
+void showSummary();
+
+void setup() {
+  M5.begin();
+  canvas.setColorDepth(8);
+  canvas.createSprite(320, 240);
+  resetAll();
+}
+
+void loop() {
+  M5.update();
+  auto status = M5Cardputer.Keyboard.keysState();
+
+  if (status.wasPressed) {
+    char c = status.charPressed;
+
+    if (c == '\n') {
+      // Handle Enter key
+      if (currentStep == 0) {
+        elevation = inputBuffer.substring(2).toFloat();
+        currentStep++;
+        inputBuffer = "> ";
+        drawInputPrompt("Windage offset (inches):", "e.g. -3.5");
+      } else if (currentStep == 1) {
+        windage = inputBuffer.substring(2).toFloat();
+        currentStep++;
+        inputBuffer = "> ";
+        drawInputPrompt("Distance to target (yards):", "e.g. 100");
+      } else if (currentStep == 2) {
+        distance = inputBuffer.substring(2).toFloat();
+        currentStep++;
+        inputBuffer = "> ";
+        drawInputPrompt("Use MOA or MIL? (M/m for MOA, else MIL)", "e.g. M");
+      } else if (currentStep == 3) {
+        String mode = inputBuffer.substring(2);
+        mode.toUpperCase();
+        useMOA = (mode == "M");
+        showSummary();
+      }
+    } else if (c == '\b') {
+      // Handle backspace
+      if (inputBuffer.length() > 2) {
+        inputBuffer.remove(inputBuffer.length() - 1);
+        drawInputPrompt((currentStep == 0) ? "Elevation offset (inches):" :
+                         (currentStep == 1) ? "Windage offset (inches):" :
+                         (currentStep == 2) ? "Distance to target (yards):" :
+                         "Use MOA or MIL? (M/m for MOA, else MIL)",
+                         (currentStep == 0) ? "e.g. +2.5" :
+                         (currentStep == 1) ? "e.g. -3.5" :
+                         (currentStep == 2) ? "e.g. 100" : "e.g. M");
+      }
+    } else {
+      inputBuffer += c;
+      drawInputPrompt((currentStep == 0) ? "Elevation offset (inches):" :
+                       (currentStep == 1) ? "Windage offset (inches):" :
+                       (currentStep == 2) ? "Distance to target (yards):" :
+                       "Use MOA or MIL? (M/m for MOA, else MIL)",
+                       (currentStep == 0) ? "e.g. +2.5" :
+                       (currentStep == 1) ? "e.g. -3.5" :
+                       (currentStep == 2) ? "e.g. 100" : "e.g. M");
+    }
+  }
+}
+
+void drawInputPrompt(const String& prompt, const String& example) {
+  canvas.fillSprite(BLACK);
+  canvas.setTextColor(WHITE);
+  canvas.setTextSize(1);
+  canvas.setCursor(10, 10);
+  canvas.print(prompt);
+
+  canvas.setCursor(10, 40);
+  canvas.setTextColor(DARKGREY);
+  canvas.print(example);
+
+  canvas.setCursor(10, 80);
+  canvas.setTextColor(GREEN);
+  canvas.print(inputBuffer);
+
+  canvas.pushSprite(0, 0);
+}
+
 void resetAll() {
   currentStep = 0;
   elevation = 0.0;
@@ -5,87 +103,40 @@ void resetAll() {
   distance = 0.0;
   useMOA = true;
   inputBuffer = "> ";
-  drawInputPrompt("Step 1 of 4: Enter bullet impact ELEVATION (+ above, - below)", "-3.5");
+  drawInputPrompt("Elevation offset (inches):", "e.g. +2.5");
 }
 
 void showSummary() {
-  M5Cardputer.Display.clear();
-  canvas.clear();
-  canvas.setCursor(0, 0);
+  canvas.fillSprite(BLACK);
+  canvas.setTextColor(WHITE);
+  canvas.setTextSize(1);
+  canvas.setCursor(10, 10);
 
+  String unit = useMOA ? "MOA" : "MIL";
   float factor = useMOA ? 1.047 : 3.6;
-  float elevationAdj = elevation / (distance * factor);
-  float windageAdj = windage / (distance * factor);
 
-  canvas.println("=== Summary ===");
-  canvas.printf("Elevation: %.2f in → %.2f %s\n", elevation, abs(elevationAdj), elevation < 0 ? "Down" : "Up");
-  canvas.printf("Windage  : %.2f in → %.2f %s\n", windage, abs(windageAdj), windage < 0 ? "Left" : "Right");
-  canvas.printf("Distance : %.2f yd\n", distance);
-  canvas.printf("Unit     : %s\n", useMOA ? "MOA" : "MIL");
-  canvas.println("\nPress Enter to restart.");
-  canvas.pushSprite(4, 4);
-}
+  float elevationAdj = (elevation * factor) / distance;
+  float windageAdj = (windage * factor) / distance;
 
-void loop() {
-  M5Cardputer.update();
+  canvas.printf("Correction Summary (%s):\n", unit.c_str());
+  canvas.printf("Distance: %.1f yds\n", distance);
+  canvas.printf("Elevation Offset: %.2f in\n", elevation);
+  canvas.printf("Windage Offset: %.2f in\n", windage);
+  canvas.printf("-> Elevation Adj: %.2f %s\n", elevationAdj, unit.c_str());
+  canvas.printf("-> Windage Adj: %.2f %s\n", windageAdj, unit.c_str());
 
-  if (M5Cardputer.Keyboard.isChange()) {
-    if (M5Cardputer.Keyboard.isPressed()) {
-      Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
+  canvas.setCursor(10, 160);
+  canvas.setTextColor(YELLOW);
+  canvas.print("Press any key to restart.");
 
-      for (auto c : status.word) inputBuffer += c;
+  canvas.pushSprite(0, 0);
 
-      if (status.del && inputBuffer.length() > 2)
-        inputBuffer.remove(inputBuffer.length() - 1);
-
-      if (status.enter) {
-        String userInput = inputBuffer.substring(2);
-        inputBuffer = "> ";
-
-        switch (currentStep) {
-          case 0:
-            elevation = userInput.toFloat();
-            if (elevation == 0) {
-              drawInputPrompt("Invalid input. Please enter a valid elevation.", "-3.5");
-              return;
-            }
-            drawInputPrompt("Step 2 of 4: Enter bullet impact WINDAGE (+ right, - left)", "+1.2");
-            break;
-          case 1:
-            windage = userInput.toFloat();
-            if (windage == 0) {
-              drawInputPrompt("Invalid input. Please enter a valid windage.", "+1.2");
-              return;
-            }
-            drawInputPrompt("Step 3 of 4: Enter DISTANCE to target (yards)", "100");
-            break;
-          case 2:
-            distance = userInput.toFloat();
-            if (distance <= 0) {
-              drawInputPrompt("Invalid input. Please enter a positive distance.", "100");
-              return;
-            }
-            drawInputPrompt("Step 4 of 4: Enter unit type: MOA or MIL", "MOA");
-            break;
-          case 3:
-            userInput.toLowerCase();
-            if (userInput == "moa") useMOA = true;
-            else if (userInput == "mil") useMOA = false;
-            else {
-              drawInputPrompt("Invalid unit. Please type MOA or MIL", "MOA");
-              return;
-            }
-            showSummary();
-            break;
-          default:
-            resetAll();
-            return;
-        }
-        currentStep++;
-      }
-
-      M5Cardputer.Display.fillRect(0, M5Cardputer.Display.height() - 28, M5Cardputer.Display.width(), 25, BLACK);
-      M5Cardputer.Display.drawString(inputBuffer, 4, M5Cardputer.Display.height() - 24);
+  while (true) {
+    M5.update();
+    auto status = M5Cardputer.Keyboard.keysState();
+    if (status.wasPressed) {
+      resetAll();
+      break;
     }
   }
 }
