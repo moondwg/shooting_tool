@@ -25,7 +25,7 @@ void loop() {
   M5Cardputer.update();
 
   if (M5Cardputer.Keyboard.isChange()) {
-    auto keyEvent = M5Cardputer.Keyboard.readKeyEvent();
+    auto keyEvent = M5Cardputer.Keyboard.getKeyValue();
     if (keyEvent.pressed) {
       char key = keyEvent.char_code;
 
