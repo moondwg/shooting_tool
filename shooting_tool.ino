@@ -1,223 +1,135 @@
-#include <M5Cardputer.h>
-#include <Wire.h>
-#include <CardKB.h>
-#include <SD.h>
-#include <FS.h>
+#include "M5Cardputer.h"
+#include "M5GFX.h"
 
-String inputString = "";
-bool inputComplete = false;
+M5Canvas canvas(&M5Cardputer.Display);
+String inputBuffer = "> ";
+int currentStep = 0;
+float elevation = 0.0;
+float windage = 0.0;
+float distance = 0.0;
+bool useMOA = true;
+
+void drawInputPrompt(const String& prompt, const String& example = "") {
+  M5Cardputer.Display.clear();
+  canvas.clear();
+  canvas.setCursor(0, 0);
+  canvas.println(prompt);
+  if (example.length() > 0) {
+    canvas.println("Example: " + example);
+  }
+  canvas.pushSprite(4, 4);
+  M5Cardputer.Display.drawString(inputBuffer, 4, M5Cardputer.Display.height() - 24);
+}
+
+void resetAll() {
+  currentStep = 0;
+  elevation = 0.0;
+  windage = 0.0;
+  distance = 0.0;
+  useMOA = true;
+  inputBuffer = "> ";
+  drawInputPrompt("Step 1 of 4: Enter bullet impact ELEVATION (+ above, - below)", "-3.5");
+}
 
 void setup() {
-  M5.begin();
-  Wire.begin();
-  CardKB.begin();
-  Serial.begin(115200);
+  auto cfg = M5.config();
+  M5Cardputer.begin(cfg, true);
+  M5Cardputer.Display.setRotation(1);
+  M5Cardputer.Display.setTextSize(0.5);
+  M5Cardputer.Display.setTextFont(&fonts::FreeSerifBoldItalic18pt7b);
 
-  if (!SD.begin()) {
-    Serial.println("SD card initialization failed!");
-    while (1);
+  canvas.setTextFont(&fonts::FreeSerifBoldItalic18pt7b);
+  canvas.setTextSize(0.5);
+  canvas.createSprite(M5Cardputer.Display.width() - 8, M5Cardputer.Display.height() - 36);
+  canvas.setTextScroll(true);
+
+  resetAll();
+}
+
+void showSummary() {
+  M5Cardputer.Display.clear();
+  canvas.clear();
+  canvas.setCursor(0, 0);
+
+  if (distance <= 0) {
+    drawInputPrompt("Distance must be > 0. Re-enter distance.", "100");
+    currentStep = 2;
+    return;
   }
 
-  mainMenu();
+  float factor = useMOA ? 1.047 : 3.6;
+  float elevationAdj = elevation / (distance * factor);
+  float windageAdj = windage / (distance * factor);
+
+  canvas.println("=== Summary ===");
+  canvas.printf("Elevation: %.2f in → %.2f %s\n", elevation, abs(elevationAdj), (elevation < 0 ? "Down" : "Up"));
+  canvas.printf("Windage  : %.2f in → %.2f %s\n", windage, abs(windageAdj), (windage < 0 ? "Left" : "Right"));
+  canvas.printf("Distance : %.2f yd\n", distance);
+  canvas.printf("Unit     : %s\n", useMOA ? "MOA" : "MIL");
+  canvas.println("\nPress Enter to restart.");
+  canvas.pushSprite(4, 4);
 }
 
 void loop() {
-  if (CardKB.available()) {
-    char c = CardKB.read();
-    if (c == '\n') {
-      inputComplete = true;
-    } else {
-      inputString += c;
+  M5Cardputer.update();
+
+  if (M5Cardputer.Keyboard.isChange()) {
+    if (M5Cardputer.Keyboard.isPressed()) {
+      Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
+
+      for (auto c : status.word) inputBuffer += c;
+
+      if (status.del && inputBuffer.length() > 2)
+        inputBuffer.remove(inputBuffer.length() - 1);
+
+      if (status.enter) {
+        if (currentStep > 3) {
+          resetAll();
+          return;
+        }
+
+        String userInput = inputBuffer.substring(2);
+        inputBuffer = "> ";
+
+        switch (currentStep) {
+          case 0:
+            elevation = userInput.toFloat();
+            drawInputPrompt("Step 2 of 4: Enter bullet impact WINDAGE (+ right, - left)", "+1.2");
+            break;
+          case 1:
+            windage = userInput.toFloat();
+            drawInputPrompt("Step 3 of 4: Enter DISTANCE to target (yards)", "100");
+            break;
+          case 2:
+            distance = userInput.toFloat();
+            if (distance <= 0) {
+              drawInputPrompt("Distance must be > 0. Re-enter distance.", "100");
+              return;
+            }
+            drawInputPrompt("Step 4 of 4: Enter unit type: MOA or MIL", "MOA");
+            break;
+          case 3: {
+            String lowered = userInput;
+            lowered.toLowerCase();
+            if (lowered == "moa") useMOA = true;
+            else if (lowered == "mil") useMOA = false;
+            else {
+              drawInputPrompt("Invalid unit. Please type MOA or MIL", "MOA");
+              return;
+            }
+            showSummary();
+            break;
+          }
+          default:
+            resetAll();
+            return;
+        }
+
+        currentStep++;
+      }
+
+      M5Cardputer.Display.fillRect(0, M5Cardputer.Display.height() - 28, M5Cardputer.Display.width(), 25, BLACK);
+      M5Cardputer.Display.drawString(inputBuffer, 4, M5Cardputer.Display.height() - 24);
     }
   }
-}
-
-void waitForKey() {
-  inputString = "";
-  inputComplete = false;
-  while (!inputComplete) {
-    loop();
-  }
-}
-
-String getInput(String prompt) {
-  M5.Display.clear();
-  M5.Display.setCursor(0, 0);
-  M5.Display.println(prompt);
-  inputString = "";
-  inputComplete = false;
-  while (!inputComplete) {
-    loop();
-  }
-  return inputString;
-}
-
-void mainMenu() {
-  while (true) {
-    M5.Display.clear();
-    M5.Display.setCursor(0, 0);
-    M5.Display.println("== Shooting Tools ==");
-    M5.Display.println("(1) Manage Profiles");
-    M5.Display.println("(2) MOA/MIL Calculator");
-    M5.Display.println("(3) Exit");
-
-    inputString = "";
-    inputComplete = false;
-    while (!inputComplete) {
-      loop();
-    }
-
-    if (inputString == "1") {
-      manageProfiles();
-    } else if (inputString == "2") {
-      moaMilCalculator();
-    } else if (inputString == "3") {
-      M5.Display.clear();
-      M5.Display.println("Goodbye!");
-      delay(2000);
-      ESP.restart();
-    }
-  }
-}
-
-void manageProfiles() {
-  while (true) {
-    M5.Display.clear();
-    M5.Display.setCursor(0, 0);
-    M5.Display.println("== Manage Profiles ==");
-    M5.Display.println("(1) New Profile");
-    M5.Display.println("(2) View Profiles");
-    M5.Display.println("(3) Back");
-
-    inputString = "";
-    inputComplete = false;
-    while (!inputComplete) {
-      loop();
-    }
-
-    if (inputString == "1") {
-      newProfile();
-    } else if (inputString == "2") {
-      viewProfiles();
-    } else if (inputString == "3") {
-      return;
-    }
-  }
-}
-
-void newProfile() {
-  String name = getInput("Profile Name:");
-  String path = "/" + name;
-  if (!SD.exists(path)) {
-    SD.mkdir(path);
-  }
-
-  String distance = getInput("Distance (yds):");
-  String verticalAdj = getInput("Vertical Adj (e.g., 1.5 MOA):");
-  String horizontalAdj = getInput("Horizontal Adj (e.g., 0.5 MOA):");
-
-  File file = SD.open(path + "/settings.txt", FILE_WRITE);
-  if (file) {
-    file.println("Distance: " + distance);
-    file.println("Vertical: " + verticalAdj);
-    file.println("Horizontal: " + horizontalAdj);
-    file.close();
-  }
-
-  M5.Display.clear();
-  M5.Display.setCursor(0, 0);
-  M5.Display.println("Profile Saved.");
-  delay(1500);
-}
-
-void viewProfiles() {
-  File root = SD.open("/");
-  int index = 1;
-  String profiles[20];
-  
-  M5.Display.clear();
-  M5.Display.setCursor(0, 0);
-  M5.Display.println("== Profiles ==");
-
-  File file = root.openNextFile();
-  while (file) {
-    if (file.isDirectory()) {
-      profiles[index] = file.name();
-      M5.Display.print("(");
-      M5.Display.print(index);
-      M5.Display.print(") ");
-      M5.Display.println(file.name());
-      index++;
-    }
-    file = root.openNextFile();
-  }
-
-  if (index == 1) {
-    M5.Display.println("No profiles found.");
-    delay(2000);
-    return;
-  }
-
-  inputString = "";
-  inputComplete = false;
-  while (!inputComplete) {
-    loop();
-  }
-
-  int selection = inputString.toInt();
-  if (selection > 0 && selection < index) {
-    showProfile(profiles[selection]);
-  }
-}
-
-void showProfile(String profileName) {
-  String path = "/" + profileName + "/settings.txt";
-  File file = SD.open(path);
-  if (!file) {
-    M5.Display.clear();
-    M5.Display.println("Profile not found.");
-    delay(2000);
-    return;
-  }
-
-  M5.Display.clear();
-  M5.Display.setCursor(0, 0);
-  M5.Display.println("== " + profileName + " ==");
-
-  while (file.available()) {
-    M5.Display.println(file.readStringUntil('\n'));
-  }
-  file.close();
-
-  waitForKey();
-}
-
-void moaMilCalculator() {
-  M5.Display.clear();
-  M5.Display.setCursor(0, 0);
-  M5.Display.println("MOA/MIL Calculator");
-
-  String targetDistance = getInput("Distance to target (yds):");
-  String impactOffset = getInput("Impact offset (inches):");
-  String clicksPerMOA = getInput("Scope clicks per MOA:");
-
-  float distanceYards = targetDistance.toFloat();
-  float offsetInches = impactOffset.toFloat();
-  float clicksPerMOAValue = clicksPerMOA.toFloat();
-
-  float moa = (offsetInches / distanceYards) * 100;
-  float clicks = moa * clicksPerMOAValue;
-  float mil = (offsetInches / (distanceYards * 36)) * 1000;
-
-  M5.Display.clear();
-  M5.Display.setCursor(0, 0);
-  M5.Display.println("== Adjustment ==");
-  M5.Display.print("MOA: ");
-  M5.Display.println(moa, 2);
-  M5.Display.print("Clicks: ");
-  M5.Display.println(clicks, 1);
-  M5.Display.print("MIL: ");
-  M5.Display.println(mil, 2);
-
-  waitForKey();
 }
