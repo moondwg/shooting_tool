@@ -9,15 +9,22 @@ float windage = 0.0;
 float distance = 0.0;
 bool useMOA = true;
 
+// Configure color scheme for military-style green terminal
+const uint32_t TERMINAL_GREEN = TFT_GREEN;
+const uint32_t TERMINAL_BG = TFT_BLACK;
+
 void drawInputPrompt(const String& prompt, const String& example = "") {
   M5Cardputer.Display.clear();
   canvas.clear();
   canvas.setCursor(0, 0);
+  canvas.setTextColor(TERMINAL_GREEN, TERMINAL_BG);
   canvas.println(prompt);
   if (example.length() > 0) {
     canvas.println("Example: " + example);
   }
   canvas.pushSprite(4, 4);
+  M5Cardputer.Display.setTextColor(TERMINAL_GREEN, TERMINAL_BG);
+  M5Cardputer.Display.drawString(inputBuffer, 4, M5Cardputer.Display.height() - 24);
 }
 
 void resetAll() {
@@ -34,17 +41,17 @@ void setup() {
   auto cfg = M5.config();
   M5Cardputer.begin(cfg, true);
   M5Cardputer.Display.setRotation(1);
-
-  // Set terminal green theme
-  M5Cardputer.Display.setTextColor(GREEN, BLACK);
-  M5Cardputer.Display.setTextFont(&fonts::Font6x10);
   M5Cardputer.Display.setTextSize(1);
+  M5Cardputer.Display.setTextColor(TERMINAL_GREEN, TERMINAL_BG);
+  M5Cardputer.Display.fillScreen(TERMINAL_BG);
+  M5Cardputer.Display.setTextFont(&fonts::Font8x8);  // clean mono font
 
-  canvas.setTextFont(&fonts::Font6x10);
+  canvas.setTextFont(&fonts::Font8x8);
   canvas.setTextSize(1);
-  canvas.setTextColor(GREEN, BLACK);
+  canvas.setTextColor(TERMINAL_GREEN, TERMINAL_BG);
   canvas.createSprite(M5Cardputer.Display.width() - 8, M5Cardputer.Display.height() - 36);
   canvas.setTextScroll(true);
+  canvas.fillSprite(TERMINAL_BG);
 
   resetAll();
 }
@@ -53,6 +60,7 @@ void showSummary() {
   M5Cardputer.Display.clear();
   canvas.clear();
   canvas.setCursor(0, 0);
+  canvas.setTextColor(TERMINAL_GREEN, TERMINAL_BG);
 
   float factor = useMOA ? 1.047 : 3.6;
   float elevationAdj = elevation / (distance * factor);
@@ -70,15 +78,6 @@ void showSummary() {
 void loop() {
   M5Cardputer.update();
 
-  static unsigned long lastBlink = 0;
-  static bool showCursor = true;
-
-  // Blink cursor logic
-  if (millis() - lastBlink > 500) {
-    lastBlink = millis();
-    showCursor = !showCursor;
-  }
-
   if (M5Cardputer.Keyboard.isChange()) {
     if (M5Cardputer.Keyboard.isPressed()) {
       Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
@@ -95,4 +94,36 @@ void loop() {
         switch (currentStep) {
           case 0:
             elevation = userInput.toFloat();
-            drawInputPrompt("Step 2 of 4: Enter bullet impact WINDAGE (+ right, -
+            drawInputPrompt("Step 2 of 4: Enter bullet impact WINDAGE (+ right, - left)", "+1.2");
+            break;
+          case 1:
+            windage = userInput.toFloat();
+            drawInputPrompt("Step 3 of 4: Enter DISTANCE to target (yards)", "100");
+            break;
+          case 2:
+            distance = userInput.toFloat();
+            drawInputPrompt("Step 4 of 4: Enter unit type: MOA or MIL", "MOA");
+            break;
+          case 3:
+            userInput.toLowerCase();
+            if (userInput == "moa") useMOA = true;
+            else if (userInput == "mil") useMOA = false;
+            else {
+              drawInputPrompt("Invalid unit. Please type MOA or MIL", "MOA");
+              return;
+            }
+            showSummary();
+            break;
+          default:
+            resetAll();
+            return;
+        }
+        currentStep++;
+      }
+
+      M5Cardputer.Display.fillRect(0, M5Cardputer.Display.height() - 28, M5Cardputer.Display.width(), 25, TERMINAL_BG);
+      M5Cardputer.Display.setTextColor(TERMINAL_GREEN, TERMINAL_BG);
+      M5Cardputer.Display.drawString(inputBuffer, 4, M5Cardputer.Display.height() - 24);
+    }
+  }
+}
