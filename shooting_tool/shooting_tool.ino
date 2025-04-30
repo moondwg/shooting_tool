@@ -1,148 +1,161 @@
 #include "M5Cardputer.h"
+#include "M5GFX.h"
 
-enum InputState {
-    ElevationDirection,
-    ElevationValue,
-    WindageDirection,
-    WindageValue,
-    UnitSelection,
-    DistanceToTarget,
-    ShowResult
+M5Canvas canvas(&M5Cardputer.Display);
+String inputBuffer = "> ";
+
+enum InputStep {
+  STEP_ELEV_SIGN,
+  STEP_ELEV_VAL,
+  STEP_WIND_SIGN,
+  STEP_WIND_VAL,
+  STEP_UNIT,
+  STEP_DISTANCE,
+  STEP_DONE
 };
 
-InputState currentState = ElevationDirection;
-
-int elevationSign = 0;  // +1 or -1
-float elevationOffset = 0.0;
-
-int windageSign = 0;  // +1 or -1
-float windageOffset = 0.0;
-
+InputStep step = STEP_ELEV_SIGN;
+float elevation = 0.0;
+int elevationSign = 1;
+float windage = 0.0;
+int windageSign = 1;
+float distance = 100.0;
 bool useMOA = true;
-float distanceToTarget = 100.0;
 
-String inputBuffer = "";
+void printInstruction(const String &text) {
+  canvas.println();
+  canvas.println(text);
+  canvas.pushSprite(4, 4);
+}
 
-void drawCenteredText(const String &text) {
-    M5Cardputer.Display.clear();
-    M5Cardputer.Display.drawString(text,
-        M5Cardputer.Display.width() / 2,
-        M5Cardputer.Display.height() / 2);
+void processInput(String userInput) {
+  userInput.trim();
+
+  switch (step) {
+    case STEP_ELEV_SIGN:
+      if (userInput == "+") {
+        elevationSign = 1;
+        step = STEP_ELEV_VAL;
+        printInstruction("Enter elevation offset (inches):");
+      } else if (userInput == "-") {
+        elevationSign = -1;
+        step = STEP_ELEV_VAL;
+        printInstruction("Enter elevation offset (inches):");
+      } else {
+        printInstruction("Enter '+' for UP or '-' for DOWN.");
+      }
+      break;
+
+    case STEP_ELEV_VAL:
+      elevation = userInput.toFloat();
+      step = STEP_WIND_SIGN;
+      printInstruction("Enter windage direction '+' = Right, '-' = Left:");
+      break;
+
+    case STEP_WIND_SIGN:
+      if (userInput == "+") {
+        windageSign = 1;
+        step = STEP_WIND_VAL;
+        printInstruction("Enter windage offset (inches):");
+      } else if (userInput == "-") {
+        windageSign = -1;
+        step = STEP_WIND_VAL;
+        printInstruction("Enter windage offset (inches):");
+      } else {
+        printInstruction("Enter '+' for RIGHT or '-' for LEFT.");
+      }
+      break;
+
+    case STEP_WIND_VAL:
+      windage = userInput.toFloat();
+      step = STEP_UNIT;
+      printInstruction("Use 'M' for MIL or 'A' for MOA:");
+      break;
+
+    case STEP_UNIT:
+      if (userInput.equalsIgnoreCase("m")) {
+        useMOA = false;
+        step = STEP_DISTANCE;
+        printInstruction("Enter distance to target (yards):");
+      } else if (userInput.equalsIgnoreCase("a")) {
+        useMOA = true;
+        step = STEP_DISTANCE;
+        printInstruction("Enter distance to target (yards):");
+      } else {
+        printInstruction("Type 'M' for MIL or 'A' for MOA.");
+      }
+      break;
+
+    case STEP_DISTANCE:
+      distance = userInput.toFloat();
+      step = STEP_DONE;
+
+      float factor = useMOA ? 1.047 : 3.6;
+      float elevationAdj = (elevationSign * elevation) / (distance * factor);
+      float windageAdj = (windageSign * windage) / (distance * factor);
+
+      canvas.println();
+      canvas.println("== ADJUSTMENTS ==");
+      canvas.println("Elevation: " + String(elevationAdj, 2) + (useMOA ? " MOA" : " MIL"));
+      canvas.println("Windage:  " + String(windageAdj, 2) + (useMOA ? " MOA" : " MIL"));
+      canvas.println();
+      canvas.pushSprite(4, 4);
+
+      step = STEP_ELEV_SIGN;
+      printInstruction("Enter elevation direction '+' = Up, '-' = Down:");
+      break;
+
+    default:
+      break;
+  }
 }
 
 void setup() {
-    auto cfg = M5.config();
-    M5Cardputer.begin(cfg, true);
-    M5Cardputer.Display.setRotation(1);
-    M5Cardputer.Display.setTextColor(GREEN);
-    M5Cardputer.Display.setTextDatum(middle_center);
-    M5Cardputer.Display.setTextFont(&fonts::FreeSerifBoldItalic18pt7b);
-    M5Cardputer.Display.setTextSize(1);
+  auto cfg = M5.config();
+  M5Cardputer.begin(cfg, true);
+  M5Cardputer.Display.setRotation(1);
+  M5Cardputer.Display.setTextSize(0.5);
+  M5Cardputer.Display.setTextFont(&fonts::FreeSerifBoldItalic18pt7b);
 
-    drawCenteredText("Use + / - for Elevation (Up/Down)");
+  canvas.setTextFont(&fonts::FreeSerifBoldItalic18pt7b);
+  canvas.setTextSize(0.5);
+  canvas.createSprite(M5Cardputer.Display.width() - 8, M5Cardputer.Display.height() - 36);
+  canvas.setTextScroll(true);
+
+  printInstruction("MOA/MIL Adjustment Tool");
+  printInstruction("Enter elevation direction '+' = Up, '-' = Down:");
+  inputBuffer = "> ";
+  M5Cardputer.Display.drawString(inputBuffer, 4, M5Cardputer.Display.height() - 24);
 }
 
 void loop() {
-    M5Cardputer.update();
+  M5Cardputer.update();
 
-    if (M5Cardputer.Keyboard.isChange()) {
-        if (M5Cardputer.Keyboard.isKeyPressed()) {
-            char key = M5Cardputer.Keyboard.read();
+  if (M5Cardputer.Keyboard.isChange()) {
+    if (M5Cardputer.Keyboard.isPressed()) {
+      Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
 
-            switch (currentState) {
-                case ElevationDirection:
-                    if (key == '+') {
-                        elevationSign = 1;
-                        currentState = ElevationValue;
-                        drawCenteredText("Enter elevation offset (inches):");
-                        inputBuffer = "";
-                    } else if (key == '-') {
-                        elevationSign = -1;
-                        currentState = ElevationValue;
-                        drawCenteredText("Enter elevation offset (inches):");
-                        inputBuffer = "";
-                    }
-                    break;
+      for (auto c : status.word) {
+        inputBuffer += c;
+      }
 
-                case ElevationValue:
-                    if (isdigit(key) || key == '.') {
-                        inputBuffer += key;
-                        drawCenteredText("Elevation: " + inputBuffer + " in");
-                    } else if (key == '\n') {
-                        elevationOffset = inputBuffer.toFloat();
-                        currentState = WindageDirection;
-                        drawCenteredText("Use + / - for Windage (Right/Left)");
-                    }
-                    break;
+      if (status.del && inputBuffer.length() > 2) {
+        inputBuffer.remove(inputBuffer.length() - 1);
+      }
 
-                case WindageDirection:
-                    if (key == '+') {
-                        windageSign = 1;
-                        currentState = WindageValue;
-                        drawCenteredText("Enter windage offset (inches):");
-                        inputBuffer = "";
-                    } else if (key == '-') {
-                        windageSign = -1;
-                        currentState = WindageValue;
-                        drawCenteredText("Enter windage offset (inches):");
-                        inputBuffer = "";
-                    }
-                    break;
+      if (status.enter) {
+        String userInput = inputBuffer.substring(2);
+        canvas.println(inputBuffer);  // echo input
+        canvas.pushSprite(4, 4);
 
-                case WindageValue:
-                    if (isdigit(key) || key == '.') {
-                        inputBuffer += key;
-                        drawCenteredText("Windage: " + inputBuffer + " in");
-                    } else if (key == '\n') {
-                        windageOffset = inputBuffer.toFloat();
-                        currentState = UnitSelection;
-                        drawCenteredText("Press M for MIL or A for MOA");
-                    }
-                    break;
+        processInput(userInput);
 
-                case UnitSelection:
-                    if (key == 'M' || key == 'm') {
-                        useMOA = false;
-                        currentState = DistanceToTarget;
-                        drawCenteredText("Enter target distance (yards):");
-                        inputBuffer = "";
-                    } else if (key == 'A' || key == 'a') {
-                        useMOA = true;
-                        currentState = DistanceToTarget;
-                        drawCenteredText("Enter target distance (yards):");
-                        inputBuffer = "";
-                    }
-                    break;
+        inputBuffer = "> ";
+      }
 
-                case DistanceToTarget:
-                    if (isdigit(key) || key == '.') {
-                        inputBuffer += key;
-                        drawCenteredText("Target: " + inputBuffer + " yd");
-                    } else if (key == '\n') {
-                        distanceToTarget = inputBuffer.toFloat();
-                        currentState = ShowResult;
-                    }
-                    break;
-
-                case ShowResult: {
-                    float moaConversion = 1.047;
-                    float factor = useMOA ? moaConversion : 3.6;
-
-                    float elevationAdj = (elevationSign * elevationOffset) / (distanceToTarget * factor);
-                    float windageAdj = (windageSign * windageOffset) / (distanceToTarget * factor);
-
-                    String result = "Elevation: ";
-                    result += String(elevationAdj, 2);
-                    result += useMOA ? " MOA\\n" : " MIL\\n";
-                    result += "Windage: ";
-                    result += String(windageAdj, 2);
-                    result += useMOA ? " MOA" : " MIL";
-
-                    drawCenteredText(result);
-                    currentState = ElevationDirection;
-                }
-                break;
-            }
-        }
+      // Redraw prompt
+      M5Cardputer.Display.fillRect(0, M5Cardputer.Display.height() - 28, M5Cardputer.Display.width(), 25, BLACK);
+      M5Cardputer.Display.drawString(inputBuffer, 4, M5Cardputer.Display.height() - 24);
     }
+  }
 }
