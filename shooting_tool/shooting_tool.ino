@@ -18,7 +18,6 @@ void drawInputPrompt(const String& prompt, const String& example = "") {
     canvas.println("Example: " + example);
   }
   canvas.pushSprite(4, 4);
-  M5Cardputer.Display.drawString(inputBuffer, 4, M5Cardputer.Display.height() - 24);
 }
 
 void resetAll() {
@@ -35,11 +34,15 @@ void setup() {
   auto cfg = M5.config();
   M5Cardputer.begin(cfg, true);
   M5Cardputer.Display.setRotation(1);
-  M5Cardputer.Display.setTextSize(0.5);
-  M5Cardputer.Display.setTextFont(&fonts::FreeSerifBoldItalic18pt7b);
 
-  canvas.setTextFont(&fonts::FreeSerifBoldItalic18pt7b);
-  canvas.setTextSize(0.5);
+  // Set terminal green theme
+  M5Cardputer.Display.setTextColor(GREEN, BLACK);
+  M5Cardputer.Display.setTextFont(&fonts::Font6x10);
+  M5Cardputer.Display.setTextSize(1);
+
+  canvas.setTextFont(&fonts::Font6x10);
+  canvas.setTextSize(1);
+  canvas.setTextColor(GREEN, BLACK);
   canvas.createSprite(M5Cardputer.Display.width() - 8, M5Cardputer.Display.height() - 36);
   canvas.setTextScroll(true);
 
@@ -51,19 +54,13 @@ void showSummary() {
   canvas.clear();
   canvas.setCursor(0, 0);
 
-  if (distance <= 0) {
-    drawInputPrompt("Distance must be > 0. Re-enter distance.", "100");
-    currentStep = 2;
-    return;
-  }
-
   float factor = useMOA ? 1.047 : 3.6;
   float elevationAdj = elevation / (distance * factor);
   float windageAdj = windage / (distance * factor);
 
   canvas.println("=== Summary ===");
-  canvas.printf("Elevation: %.2f in → %.2f %s\n", elevation, abs(elevationAdj), (elevation < 0 ? "Down" : "Up"));
-  canvas.printf("Windage  : %.2f in → %.2f %s\n", windage, abs(windageAdj), (windage < 0 ? "Left" : "Right"));
+  canvas.printf("Elevation: %.2f in → %.2f %s\n", elevation, abs(elevationAdj), elevation < 0 ? "Down" : "Up");
+  canvas.printf("Windage  : %.2f in → %.2f %s\n", windage, abs(windageAdj), windage < 0 ? "Left" : "Right");
   canvas.printf("Distance : %.2f yd\n", distance);
   canvas.printf("Unit     : %s\n", useMOA ? "MOA" : "MIL");
   canvas.println("\nPress Enter to restart.");
@@ -72,6 +69,15 @@ void showSummary() {
 
 void loop() {
   M5Cardputer.update();
+
+  static unsigned long lastBlink = 0;
+  static bool showCursor = true;
+
+  // Blink cursor logic
+  if (millis() - lastBlink > 500) {
+    lastBlink = millis();
+    showCursor = !showCursor;
+  }
 
   if (M5Cardputer.Keyboard.isChange()) {
     if (M5Cardputer.Keyboard.isPressed()) {
@@ -83,53 +89,10 @@ void loop() {
         inputBuffer.remove(inputBuffer.length() - 1);
 
       if (status.enter) {
-        if (currentStep > 3) {
-          resetAll();
-          return;
-        }
-
         String userInput = inputBuffer.substring(2);
         inputBuffer = "> ";
 
         switch (currentStep) {
           case 0:
             elevation = userInput.toFloat();
-            drawInputPrompt("Step 2 of 4: Enter bullet impact WINDAGE (+ right, - left)", "+1.2");
-            break;
-          case 1:
-            windage = userInput.toFloat();
-            drawInputPrompt("Step 3 of 4: Enter DISTANCE to target (yards)", "100");
-            break;
-          case 2:
-            distance = userInput.toFloat();
-            if (distance <= 0) {
-              drawInputPrompt("Distance must be > 0. Re-enter distance.", "100");
-              return;
-            }
-            drawInputPrompt("Step 4 of 4: Enter unit type: MOA or MIL", "MOA");
-            break;
-          case 3: {
-            String lowered = userInput;
-            lowered.toLowerCase();
-            if (lowered == "moa") useMOA = true;
-            else if (lowered == "mil") useMOA = false;
-            else {
-              drawInputPrompt("Invalid unit. Please type MOA or MIL", "MOA");
-              return;
-            }
-            showSummary();
-            break;
-          }
-          default:
-            resetAll();
-            return;
-        }
-
-        currentStep++;
-      }
-
-      M5Cardputer.Display.fillRect(0, M5Cardputer.Display.height() - 28, M5Cardputer.Display.width(), 25, BLACK);
-      M5Cardputer.Display.drawString(inputBuffer, 4, M5Cardputer.Display.height() - 24);
-    }
-  }
-}
+            drawInputPrompt("Step 2 of 4: Enter bullet impact WINDAGE (+ right, -
