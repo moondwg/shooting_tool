@@ -13,6 +13,8 @@ AppState appState = STATE_MENU;
 int menuIndex = 0;
 const int menuItems = 1;
 String menuOptions[] = { "🧠 Ballistic Calculator" };
+typedef void (*ToolHandler)();
+ToolHandler menuHandlers[] = { resetAll };
 
 String inputBuffer = "> ";
 int currentStep = 0;
@@ -21,7 +23,12 @@ float windage = 0.0;
 float distance = 0.0;
 bool useMOA = true;
 
-// === DRAW MAIN MENU ===
+// === TOOL: BALLISTIC CALCULATOR ===
+void resetAll();
+void drawMainMenu();
+void drawInputPrompt(const String&, const String&);
+
+// === MENU RENDERING ===
 void drawMainMenu() {
   M5Cardputer.Display.clear();
   canvas.clear();
@@ -37,7 +44,7 @@ void drawMainMenu() {
     } else {
       canvas.setTextColor(GREEN);
     }
-    canvas.printf("  %s\n", menuOptions[i].c_str());
+    canvas.printf("%d. %s\n", i + 1, menuOptions[i].c_str());
   }
 
   canvas.setTextColor(GREEN);
@@ -46,7 +53,6 @@ void drawMainMenu() {
   canvas.pushSprite(4, 4);
 }
 
-// === DRAW SHOOTING TOOL PROMPT ===
 void drawInputPrompt(const String& prompt, const String& example = "") {
   M5Cardputer.Display.clear();
   canvas.clear();
@@ -68,7 +74,6 @@ void drawInputPrompt(const String& prompt, const String& example = "") {
   M5Cardputer.Display.drawString(inputBuffer, M5Cardputer.Display.width() / 2, M5Cardputer.Display.height() - 12);
 }
 
-// === RESET SHOOTING TOOL STATE ===
 void resetAll() {
   currentStep = 0;
   elevation = 0.0;
@@ -77,9 +82,9 @@ void resetAll() {
   useMOA = true;
   inputBuffer = "> ";
   drawInputPrompt("Step 1 of 4:\nEnter bullet impact\n ELEVATION (+/- inches)", "-3.5");
+  appState = STATE_SHOOTING_TOOL;
 }
 
-// === SHOW SUMMARY ===
 void showSummary() {
   M5Cardputer.Display.clear();
   canvas.clear();
@@ -100,7 +105,6 @@ void showSummary() {
   canvas.pushSprite(4, 4);
 }
 
-// === SETUP ===
 void setup() {
   auto cfg = M5.config();
   M5Cardputer.begin(cfg, true);
@@ -117,37 +121,31 @@ void setup() {
   drawMainMenu();
 }
 
-// === LOOP ===
 void loop() {
   M5Cardputer.update();
 
   if (appState == STATE_MENU) {
-    if (M5Cardputer.Keyboard.isKeyPressed('w')) {  // UP arrow (w key)
+    if (M5Cardputer.Keyboard.isKeyPressed(0xDA)) {  // Up
       if (menuIndex > 0) menuIndex--;
       drawMainMenu();
       delay(150);
     }
-    if (M5Cardputer.Keyboard.isKeyPressed('s')) {  // DOWN arrow (s key)
+    if (M5Cardputer.Keyboard.isKeyPressed(0xD9)) {  // Down
       if (menuIndex < menuItems - 1) menuIndex++;
       drawMainMenu();
       delay(150);
     }
-    if (M5Cardputer.Keyboard.isKeyPressed('\n')) {  // Enter key
-      if (menuIndex == 0) {
-        appState = STATE_SHOOTING_TOOL;
-        resetAll();
-      }
+    if (M5Cardputer.Keyboard.isKeyPressed('\n')) {  // Enter
+      menuHandlers[menuIndex]();  // Launch tool
     }
     return;
   }
 
-  // SHOOTING TOOL
+  // === BALLISTIC TOOL LOGIC ===
   if (M5Cardputer.Keyboard.isChange()) {
     if (M5Cardputer.Keyboard.isPressed()) {
       Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
-
       for (auto c : status.word) inputBuffer += c;
-
       if (status.del && inputBuffer.length() > 2)
         inputBuffer.remove(inputBuffer.length() - 1);
 
