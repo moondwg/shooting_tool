@@ -44,10 +44,10 @@ void setup() {
   auto cfg = M5.config();
   M5Cardputer.begin(cfg, true);
   M5Cardputer.Display.setRotation(1);
-  M5Cardputer.Display.setTextSize(1);  // Bigger text
-  M5Cardputer.Display.setTextFont(&fonts::Font4x6);  // Compact readable font
+  M5Cardputer.Display.setTextSize(2);  // Bigger text
+  M5Cardputer.Display.setTextFont(&fonts::Font2x3);  // Change font to Font2x3
 
-  canvas.setTextFont(&fonts::Font4x6);
+  canvas.setTextFont(&fonts::Font2x3);
   canvas.setTextSize(1);
   canvas.createSprite(M5Cardputer.Display.width() - 8, M5Cardputer.Display.height() - 40);
   canvas.setTextColor(GREEN);
@@ -126,4 +126,4 @@ void loop() {
       M5Cardputer.Display.drawString(inputBuffer, M5Cardputer.Display.width() / 2, M5Cardputer.Display.height() - 12);
     }
   }
-}
+}2
