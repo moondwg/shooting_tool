@@ -126,4 +126,4 @@ void loop() {
       M5Cardputer.Display.drawString(inputBuffer, M5Cardputer.Display.width() / 2, M5Cardputer.Display.height() - 12);
     }
   }
-}2
+}
