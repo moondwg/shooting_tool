@@ -9,22 +9,21 @@ float windage = 0.0;
 float distance = 0.0;
 bool useMOA = true;
 
-// Configure color scheme for military-style green terminal
-const uint32_t TERMINAL_GREEN = TFT_GREEN;
-const uint32_t TERMINAL_BG = TFT_BLACK;
-
 void drawInputPrompt(const String& prompt, const String& example = "") {
   M5Cardputer.Display.clear();
   canvas.clear();
-  canvas.setCursor(0, 0);
-  canvas.setTextColor(TERMINAL_GREEN, TERMINAL_BG);
-  canvas.println(prompt);
+
+  int W = canvas.width();
+  int H = canvas.height();
+
+  canvas.drawString(prompt, W / 2, H / 2 - 20);
   if (example.length() > 0) {
-    canvas.println("Example: " + example);
+    canvas.drawString("Example: " + example, W / 2, H / 2);
   }
+
   canvas.pushSprite(4, 4);
-  M5Cardputer.Display.setTextColor(TERMINAL_GREEN, TERMINAL_BG);
-  M5Cardputer.Display.drawString(inputBuffer, 4, M5Cardputer.Display.height() - 24);
+
+  M5Cardputer.Display.drawString(inputBuffer, M5Cardputer.Display.width() / 2, M5Cardputer.Display.height() - 12);
 }
 
 void resetAll() {
@@ -41,18 +40,15 @@ void setup() {
   auto cfg = M5.config();
   M5Cardputer.begin(cfg, true);
   M5Cardputer.Display.setRotation(1);
-  M5Cardputer.Display.setTextSize(2);
-  M5Cardputer.Display.setTextColor(TERMINAL_GREEN, TERMINAL_BG);
-  M5Cardputer.Display.fillScreen(TERMINAL_BG);
-  
-  M5Cardputer.Display.setTextFont(&fonts::lgfxJapanGothic_8);  // readable mono-style font
-  
-  canvas.setTextFont(&fonts::lgfxJapanGothic_8);
-  canvas.setTextSize(2);
-  canvas.setTextColor(TERMINAL_GREEN, TERMINAL_BG);
+
+  M5Cardputer.Display.setTextFont(&fonts::lgfxJapanGothic_12);
+  M5Cardputer.Display.setTextColor(GREEN, BLACK);
+  M5Cardputer.Display.setTextDatum(middle_center);
+
+  canvas.setTextFont(&fonts::lgfxJapanGothic_12);
+  canvas.setTextColor(GREEN, BLACK);
+  canvas.setTextDatum(middle_center);
   canvas.createSprite(M5Cardputer.Display.width() - 8, M5Cardputer.Display.height() - 36);
-  canvas.setTextScroll(true);
-  canvas.fillSprite(TERMINAL_BG);
 
   resetAll();
 }
@@ -61,7 +57,6 @@ void showSummary() {
   M5Cardputer.Display.clear();
   canvas.clear();
   canvas.setCursor(0, 0);
-  canvas.setTextColor(TERMINAL_GREEN, TERMINAL_BG);
 
   float factor = useMOA ? 1.047 : 3.6;
   float elevationAdj = elevation / (distance * factor);
@@ -122,9 +117,8 @@ void loop() {
         currentStep++;
       }
 
-      M5Cardputer.Display.fillRect(0, M5Cardputer.Display.height() - 28, M5Cardputer.Display.width(), 25, TERMINAL_BG);
-      M5Cardputer.Display.setTextColor(TERMINAL_GREEN, TERMINAL_BG);
-      M5Cardputer.Display.drawString(inputBuffer, 4, M5Cardputer.Display.height() - 24);
+      M5Cardputer.Display.fillRect(0, M5Cardputer.Display.height() - 28, M5Cardputer.Display.width(), 25, BLACK);
+      M5Cardputer.Display.drawString(inputBuffer, M5Cardputer.Display.width() / 2, M5Cardputer.Display.height() - 12);
     }
   }
 }
