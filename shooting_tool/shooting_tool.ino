@@ -16,13 +16,17 @@ void drawInputPrompt(const String& prompt, const String& example = "") {
   int W = canvas.width();
   int H = canvas.height();
 
-  canvas.drawString(prompt, W / 2, H / 2 - 20);
+  canvas.setTextColor(GREEN);
+  canvas.setTextDatum(middle_center);
+  canvas.drawString(prompt, W / 2, H / 2 - 10);
   if (example.length() > 0) {
-    canvas.drawString("Example: " + example, W / 2, H / 2);
+    canvas.drawString("Example: " + example, W / 2, H / 2 + 10);
   }
 
   canvas.pushSprite(4, 4);
 
+  M5Cardputer.Display.setTextDatum(middle_center);
+  M5Cardputer.Display.setTextColor(GREEN);
   M5Cardputer.Display.drawString(inputBuffer, M5Cardputer.Display.width() / 2, M5Cardputer.Display.height() - 12);
 }
 
@@ -40,15 +44,14 @@ void setup() {
   auto cfg = M5.config();
   M5Cardputer.begin(cfg, true);
   M5Cardputer.Display.setRotation(1);
+  M5Cardputer.Display.setTextSize(1);  // Bigger text
+  M5Cardputer.Display.setTextFont(&fonts::Font4x6);  // Compact readable font
 
-  M5Cardputer.Display.setTextFont(&fonts::lgfxJapanGothic_12);
-  M5Cardputer.Display.setTextColor(GREEN, BLACK);
-  M5Cardputer.Display.setTextDatum(middle_center);
-
-  canvas.setTextFont(&fonts::lgfxJapanGothic_12);
-  canvas.setTextColor(GREEN, BLACK);
+  canvas.setTextFont(&fonts::Font4x6);
+  canvas.setTextSize(1);
+  canvas.createSprite(M5Cardputer.Display.width() - 8, M5Cardputer.Display.height() - 40);
+  canvas.setTextColor(GREEN);
   canvas.setTextDatum(middle_center);
-  canvas.createSprite(M5Cardputer.Display.width() - 8, M5Cardputer.Display.height() - 36);
 
   resetAll();
 }
@@ -57,11 +60,13 @@ void showSummary() {
   M5Cardputer.Display.clear();
   canvas.clear();
   canvas.setCursor(0, 0);
+  canvas.setTextDatum(top_left);
 
   float factor = useMOA ? 1.047 : 3.6;
   float elevationAdj = elevation / (distance * factor);
   float windageAdj = windage / (distance * factor);
 
+  canvas.setTextColor(GREEN);
   canvas.println("=== Summary ===");
   canvas.printf("Elevation: %.2f in → %.2f %s\n", elevation, abs(elevationAdj), elevation < 0 ? "Down" : "Up");
   canvas.printf("Windage  : %.2f in → %.2f %s\n", windage, abs(windageAdj), windage < 0 ? "Left" : "Right");
