@@ -37,7 +37,7 @@ void resetAll() {
   distance = 0.0;
   useMOA = true;
   inputBuffer = "> ";
-  drawInputPrompt("Step 1 of 4:\nEnter bullet impact\nELEVATION (+/- inches)", "-3.5");
+  drawInputPrompt("Step 1 of 4:\nEnter bullet impact\n ELEVATION (+/- inches)", "-3.5");
 }
 
 void setup() {
@@ -68,8 +68,8 @@ void showSummary() {
 
   canvas.setTextColor(GREEN);
   canvas.println("=== Summary ===");
-  canvas.printf("Elevation: %.2f in → %.2f %s\n", elevation, abs(elevationAdj), elevation < 0 ? "Down" : "Up");
-  canvas.printf("Windage  : %.2f in → %.2f %s\n", windage, abs(windageAdj), windage < 0 ? "Left" : "Right");
+  canvas.printf("Elevation: %.2f in → %.2f %s\n", elevation, abs(elevationAdj), elevation < 0 ?  "\n Down" : "\n Up");
+  canvas.printf("Windage  : %.2f in → %.2f %s\n", windage, abs(windageAdj), windage < 0 ? "\n Left" : "\n Right");
   canvas.printf("Distance : %.2f yd\n", distance);
   canvas.printf("Unit     : %s\n", useMOA ? "MOA" : "MIL");
   canvas.println("\nPress Enter to restart.");
