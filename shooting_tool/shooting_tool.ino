@@ -45,7 +45,7 @@ void setup() {
   M5Cardputer.begin(cfg, true);
   M5Cardputer.Display.setRotation(1);
   M5Cardputer.Display.setTextSize(2);  // Bigger text
-  M5Cardputer.Display.setTextFont(&fonts::AsciiFont8x16)
+  M5Cardputer.Display.setTextFont(&fonts::AsciiFont8x16);
 
   canvas.setTextFont(&fonts::AsciiFont8x16);
   canvas.setTextSize(1);
