@@ -37,7 +37,7 @@ void resetAll() {
   distance = 0.0;
   useMOA = true;
   inputBuffer = "> ";
-  drawInputPrompt("Step 1 of 4: Enter bullet impact ELEVATION (+ above, - below)", "-3.5");
+  drawInputPrompt("Step 1 of 4:\nEnter bullet impact\nELEVATION (+/- inches)", "-3.5");
 }
 
 void setup() {
@@ -95,22 +95,22 @@ void loop() {
         switch (currentStep) {
           case 0:
             elevation = userInput.toFloat();
-            drawInputPrompt("Step 2 of 4: Enter bullet impact WINDAGE (+ right, - left)", "+1.2");
+            drawInputPrompt("Step 2 of 4:\nEnter bullet impact\nWINDAGE (+/- inches)", "+1.2");
             break;
           case 1:
             windage = userInput.toFloat();
-            drawInputPrompt("Step 3 of 4: Enter DISTANCE to target (yards)", "100");
+            drawInputPrompt("Step 3 of 4:\nEnter DISTANCE to\ntarget (yards)", "100");
             break;
           case 2:
             distance = userInput.toFloat();
-            drawInputPrompt("Step 4 of 4: Enter unit type: MOA or MIL", "MOA");
+            drawInputPrompt("Step 4 of 4:\nEnter unit type:\nMOA or MIL", "MOA");
             break;
           case 3:
             userInput.toLowerCase();
             if (userInput == "moa") useMOA = true;
             else if (userInput == "mil") useMOA = false;
             else {
-              drawInputPrompt("Invalid unit. Please type MOA or MIL", "MOA");
+              drawInputPrompt("Invalid unit.\nPlease type MOA or MIL", "MOA");
               return;
             }
             showSummary();
