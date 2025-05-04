@@ -8,6 +8,19 @@ float elevation = 0.0;
 float windage = 0.0;
 float distance = 0.0;
 bool useMOA = true;
+bool menuActive = true;
+
+void drawMainMenu() {
+  M5Cardputer.Display.clear();
+  canvas.clear();
+
+  canvas.setTextColor(GREEN);
+  canvas.setTextDatum(middle_center);
+  canvas.drawString("<< MOA/MIL CALC >>", canvas.width() / 2, canvas.height() / 2 - 30);
+  canvas.drawString("Press [Enter] to Begin", canvas.width() / 2, canvas.height() / 2 + 10);
+
+  canvas.pushSprite(4, 4);
+}
 
 void drawInputPrompt(const String& prompt, const String& example = "") {
   M5Cardputer.Display.clear();
@@ -37,23 +50,7 @@ void resetAll() {
   distance = 0.0;
   useMOA = true;
   inputBuffer = "> ";
-  drawInputPrompt("Step 1 of 4:\nEnter bullet impact\n ELEVATION (+/- inches)", "-3.5");
-}
-
-void setup() {
-  auto cfg = M5.config();
-  M5Cardputer.begin(cfg, true);
-  M5Cardputer.Display.setRotation(1);
-  M5Cardputer.Display.setTextSize(2);  // Bigger text
-  M5Cardputer.Display.setTextFont(&fonts::AsciiFont8x16);
-
-  canvas.setTextFont(&fonts::AsciiFont8x16);
-  canvas.setTextSize(1);
-  canvas.createSprite(M5Cardputer.Display.width() - 8, M5Cardputer.Display.height() - 40);
-  canvas.setTextColor(GREEN);
-  canvas.setTextDatum(middle_center);
-
-  resetAll();
+  drawInputPrompt("Step 1 of 4:\nEnter bullet impact\nELEVATION (+/- inches)", "-3.5");
 }
 
 void showSummary() {
@@ -76,6 +73,22 @@ void showSummary() {
   canvas.pushSprite(4, 4);
 }
 
+void setup() {
+  auto cfg = M5.config();
+  M5Cardputer.begin(cfg, true);
+  M5Cardputer.Display.setRotation(1);
+  M5Cardputer.Display.setTextSize(2);
+  M5Cardputer.Display.setTextFont(&fonts::AsciiFont8x16);
+
+  canvas.setTextFont(&fonts::AsciiFont8x16);
+  canvas.setTextSize(1);
+  canvas.createSprite(M5Cardputer.Display.width() - 8, M5Cardputer.Display.height() - 40);
+  canvas.setTextColor(GREEN);
+  canvas.setTextDatum(middle_center);
+
+  drawMainMenu();  // Show startup menu first
+}
+
 void loop() {
   M5Cardputer.update();
 
@@ -83,47 +96,56 @@ void loop() {
     if (M5Cardputer.Keyboard.isPressed()) {
       Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
 
-      for (auto c : status.word) inputBuffer += c;
-
-      if (status.del && inputBuffer.length() > 2)
-        inputBuffer.remove(inputBuffer.length() - 1);
-
-      if (status.enter) {
-        String userInput = inputBuffer.substring(2);
-        inputBuffer = "> ";
-
-        switch (currentStep) {
-          case 0:
-            elevation = userInput.toFloat();
-            drawInputPrompt("Step 2 of 4:\nEnter bullet impact\nWINDAGE (+/- inches)", "+1.2");
-            break;
-          case 1:
-            windage = userInput.toFloat();
-            drawInputPrompt("Step 3 of 4:\nEnter DISTANCE to\ntarget (yards)", "100");
-            break;
-          case 2:
-            distance = userInput.toFloat();
-            drawInputPrompt("Step 4 of 4:\nEnter unit type:\nMOA or MIL", "MOA");
-            break;
-          case 3:
-            userInput.toLowerCase();
-            if (userInput == "moa") useMOA = true;
-            else if (userInput == "mil") useMOA = false;
-            else {
-              drawInputPrompt("Invalid unit.\nPlease type MOA or MIL", "MOA");
-              return;
-            }
-            showSummary();
-            break;
-          default:
-            resetAll();
-            return;
-        }
-        currentStep++;
+      if (menuActive && status.enter) {
+        menuActive = false;
+        resetAll();
+        return;
       }
 
-      M5Cardputer.Display.fillRect(0, M5Cardputer.Display.height() - 28, M5Cardputer.Display.width(), 25, BLACK);
-      M5Cardputer.Display.drawString(inputBuffer, M5Cardputer.Display.width() / 2, M5Cardputer.Display.height() - 12);
+      if (!menuActive) {
+        for (auto c : status.word) inputBuffer += c;
+
+        if (status.del && inputBuffer.length() > 2)
+          inputBuffer.remove(inputBuffer.length() - 1);
+
+        if (status.enter) {
+          String userInput = inputBuffer.substring(2);
+          inputBuffer = "> ";
+
+          switch (currentStep) {
+            case 0:
+              elevation = userInput.toFloat();
+              drawInputPrompt("Step 2 of 4:\nEnter bullet impact\nWINDAGE (+/- inches)", "+1.2");
+              break;
+            case 1:
+              windage = userInput.toFloat();
+              drawInputPrompt("Step 3 of 4:\nEnter DISTANCE to\ntarget (yards)", "100");
+              break;
+            case 2:
+              distance = userInput.toFloat();
+              drawInputPrompt("Step 4 of 4:\nEnter unit type:\nMOA or MIL", "MOA");
+              break;
+            case 3:
+              userInput.toLowerCase();
+              if (userInput == "moa") useMOA = true;
+              else if (userInput == "mil") useMOA = false;
+              else {
+                drawInputPrompt("Invalid unit.\nPlease type MOA or MIL", "MOA");
+                return;
+              }
+              showSummary();
+              break;
+            default:
+              menuActive = true;
+              drawMainMenu();
+              return;
+          }
+          currentStep++;
+        }
+
+        M5Cardputer.Display.fillRect(0, M5Cardputer.Display.height() - 28, M5Cardputer.Display.width(), 25, BLACK);
+        M5Cardputer.Display.drawString(inputBuffer, M5Cardputer.Display.width() / 2, M5Cardputer.Display.height() - 12);
+      }
     }
   }
 }
