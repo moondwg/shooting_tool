@@ -2,22 +2,48 @@
 #include "M5GFX.h"
 
 M5Canvas canvas(&M5Cardputer.Display);
+
+// --- Global App State ---
 String inputBuffer = "> ";
 int currentStep = 0;
 float elevation = 0.0;
 float windage = 0.0;
 float distance = 0.0;
 bool useMOA = true;
-bool menuActive = true;
 
-void drawMainMenu() {
+enum AppState { MENU, CALCULATOR, EXIT };
+AppState currentState = MENU;
+
+int selectedMenuIndex = 0;
+unsigned long lastBlink = 0;
+bool showSelector = true;
+
+// --- Menu Options ---
+const int MENU_ITEMS = 2;
+const char* menuOptions[MENU_ITEMS] = {
+  "Launch Ballistic Calculator",
+  "Exit"
+};
+
+// --- UI Drawing ---
+void drawMenu() {
   M5Cardputer.Display.clear();
   canvas.clear();
 
-  canvas.setTextColor(GREEN);
   canvas.setTextDatum(middle_center);
-  canvas.drawString("<< MOA/MIL CALC >>", canvas.width() / 2, canvas.height() / 2 - 30);
-  canvas.drawString("Press [Enter] to Begin", canvas.width() / 2, canvas.height() / 2 + 10);
+  canvas.setTextColor(GREEN);
+  int W = canvas.width();
+  int H = canvas.height();
+
+  canvas.drawString("== M5 MIL TOOL SUITE ==", W / 2, 20);
+
+  for (int i = 0; i < MENU_ITEMS; i++) {
+    String line = menuOptions[i];
+    if (i == selectedMenuIndex && showSelector) {
+      line = "> " + line + " <";
+    }
+    canvas.drawString(line, W / 2, 60 + i * 20);
+  }
 
   canvas.pushSprite(4, 4);
 }
@@ -43,16 +69,6 @@ void drawInputPrompt(const String& prompt, const String& example = "") {
   M5Cardputer.Display.drawString(inputBuffer, M5Cardputer.Display.width() / 2, M5Cardputer.Display.height() - 12);
 }
 
-void resetAll() {
-  currentStep = 0;
-  elevation = 0.0;
-  windage = 0.0;
-  distance = 0.0;
-  useMOA = true;
-  inputBuffer = "> ";
-  drawInputPrompt("Step 1 of 4:\nEnter bullet impact\nELEVATION (+/- inches)", "-3.5");
-}
-
 void showSummary() {
   M5Cardputer.Display.clear();
   canvas.clear();
@@ -65,14 +81,25 @@ void showSummary() {
 
   canvas.setTextColor(GREEN);
   canvas.println("=== Summary ===");
-  canvas.printf("Elevation: %.2f in → %.2f %s\n", elevation, abs(elevationAdj), elevation < 0 ?  "\n Down" : "\n Up");
-  canvas.printf("Windage  : %.2f in → %.2f %s\n", windage, abs(windageAdj), windage < 0 ? "\n Left" : "\n Right");
+  canvas.printf("Elevation: %.2f in → %.2f %s\n", elevation, abs(elevationAdj), elevation < 0 ? "Down" : "Up");
+  canvas.printf("Windage  : %.2f in → %.2f %s\n", windage, abs(windageAdj), windage < 0 ? "Left" : "Right");
   canvas.printf("Distance : %.2f yd\n", distance);
   canvas.printf("Unit     : %s\n", useMOA ? "MOA" : "MIL");
   canvas.println("\nPress Enter to restart.");
   canvas.pushSprite(4, 4);
 }
 
+void resetAll() {
+  currentStep = 0;
+  elevation = 0.0;
+  windage = 0.0;
+  distance = 0.0;
+  useMOA = true;
+  inputBuffer = "> ";
+  drawInputPrompt("Step 1 of 4:\nEnter bullet impact\nELEVATION (+/- inches)", "-3.5");
+}
+
+// --- Setup ---
 void setup() {
   auto cfg = M5.config();
   M5Cardputer.begin(cfg, true);
@@ -86,23 +113,49 @@ void setup() {
   canvas.setTextColor(GREEN);
   canvas.setTextDatum(middle_center);
 
-  drawMainMenu();  // Show startup menu first
+  drawMenu();
 }
 
+// --- Loop ---
 void loop() {
   M5Cardputer.update();
 
+  // Blinking menu selector
+  if (millis() - lastBlink > 500) {
+    showSelector = !showSelector;
+    lastBlink = millis();
+    if (currentState == MENU) drawMenu();
+  }
+
   if (M5Cardputer.Keyboard.isChange()) {
     if (M5Cardputer.Keyboard.isPressed()) {
-      Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
+      auto status = M5Cardputer.Keyboard.keysState();
 
-      if (menuActive && status.enter) {
-        menuActive = false;
-        resetAll();
-        return;
+      if (currentState == MENU) {
+        if (status.up) {
+          selectedMenuIndex = (selectedMenuIndex - 1 + MENU_ITEMS) % MENU_ITEMS;
+          drawMenu();
+        }
+        if (status.down) {
+          selectedMenuIndex = (selectedMenuIndex + 1) % MENU_ITEMS;
+          drawMenu();
+        }
+        if (status.enter) {
+          if (selectedMenuIndex == 0) {
+            currentState = CALCULATOR;
+            resetAll();
+          } else if (selectedMenuIndex == 1) {
+            currentState = EXIT;
+            M5Cardputer.Display.clear();
+            canvas.clear();
+            canvas.drawString("Shutting down...", canvas.width() / 2, canvas.height() / 2);
+            canvas.pushSprite(4, 4);
+            delay(2000);
+          }
+        }
       }
 
-      if (!menuActive) {
+      else if (currentState == CALCULATOR) {
         for (auto c : status.word) inputBuffer += c;
 
         if (status.del && inputBuffer.length() > 2)
@@ -136,8 +189,8 @@ void loop() {
               showSummary();
               break;
             default:
-              menuActive = true;
-              drawMainMenu();
+              currentState = MENU;
+              drawMenu();
               return;
           }
           currentStep++;
