@@ -144,7 +144,7 @@ void loop() {
       drawMainMenu();
       delay(150);
     }
-    if (M5Cardputer.Keyboard.isKeyPressed(10)) {  // Enter key (ASCII code 10)
+    if (M5Cardputer.Keyboard.isKeyPressed(KEY_OK)) {  // OK button
       if (menuIndex < menuItems) {
         menuHandlers[menuIndex]();  // Call the handler
       }
