@@ -4,7 +4,7 @@
 #define KEY_DOWN  0x51  // Arrow down
 #define KEY_OK    '\n'  // Enter key
 
-// Forward declaration
+// Forward declarations
 void drawInputPrompt(const String& prompt, const String& example = "");
 void resetAll(); // Your first tool
 
@@ -20,11 +20,14 @@ void setup() {
   M5.begin();
   M5Cardputer.begin();
   M5Cardputer.update();
+
   M5Cardputer.Display.setRotation(1);
   M5Cardputer.Display.setTextSize(1);
   M5Cardputer.Display.setCursor(0, 0);
   M5Cardputer.Display.println("Initializing...");
   delay(500);
+
+  drawMenu(); // Draw the menu after initializing
 }
 
 void drawMenu() {
@@ -54,39 +57,29 @@ void drawInputPrompt(const String& prompt, const String& example) {
   }
 }
 
+void waitForEnter() {
+  while (true) {
+    M5Cardputer.update();
+    auto e = M5Cardputer.Keyboard.getKeyEvent();
+    if (e.pressed && e.key == KEY_OK) {
+      break;
+    }
+    delay(10);
+  }
+}
+
 void resetAll() {
-  drawInputPrompt("Step 1 of 4:\nEnter bullet impact\n ELEVATION (+/- inches)", "-3.5");
+  drawInputPrompt("Step 1 of 4:\nEnter bullet impact\nELEVATION (+/- inches)", "-3.5");
+  waitForEnter();
 
-  while (true) {
-    M5Cardputer.update();
-    if (M5Cardputer.Keyboard.isKeyPressed(KEY_OK)) {
-      break;
-    }
-  }
-
-  drawInputPrompt("Step 2 of 4:\nEnter bullet impact\n WINDAGE (+/- inches)", "+1.2");
-  while (true) {
-    M5Cardputer.update();
-    if (M5Cardputer.Keyboard.isKeyPressed(KEY_OK)) {
-      break;
-    }
-  }
+  drawInputPrompt("Step 2 of 4:\nEnter bullet impact\nWINDAGE (+/- inches)", "+1.2");
+  waitForEnter();
 
   drawInputPrompt("Step 3 of 4:\nEnter distance to target (yards)", "100");
-  while (true) {
-    M5Cardputer.update();
-    if (M5Cardputer.Keyboard.isKeyPressed(KEY_OK)) {
-      break;
-    }
-  }
+  waitForEnter();
 
   drawInputPrompt("Step 4 of 4:\nEnter scope click value (inches/click)", "0.25");
-  while (true) {
-    M5Cardputer.update();
-    if (M5Cardputer.Keyboard.isKeyPressed(KEY_OK)) {
-      break;
-    }
-  }
+  waitForEnter();
 
   M5Cardputer.Display.clear();
   M5Cardputer.Display.setCursor(0, 0);
@@ -103,21 +96,18 @@ void loop() {
   M5Cardputer.update();
 
   if (!inTool) {
-    if (M5Cardputer.Keyboard.isKeyPressed(KEY_UP)) {
-      selectedMenuIndex = (selectedMenuIndex - 1 + menuLength) % menuLength;
-      drawMenu();
-      delay(200);
-    }
-
-    if (M5Cardputer.Keyboard.isKeyPressed(KEY_DOWN)) {
-      selectedMenuIndex = (selectedMenuIndex + 1) % menuLength;
-      drawMenu();
-      delay(200);
-    }
-
-    if (M5Cardputer.Keyboard.isKeyPressed(KEY_OK)) {
-      inTool = true;
-      menuHandlers[selectedMenuIndex]();
+    auto keyEvent = M5Cardputer.Keyboard.getKeyEvent();
+    if (keyEvent.pressed) {
+      if (keyEvent.key == KEY_UP) {
+        selectedMenuIndex = (selectedMenuIndex - 1 + menuLength) % menuLength;
+        drawMenu();
+      } else if (keyEvent.key == KEY_DOWN) {
+        selectedMenuIndex = (selectedMenuIndex + 1) % menuLength;
+        drawMenu();
+      } else if (keyEvent.key == KEY_OK) {
+        inTool = true;
+        menuHandlers[selectedMenuIndex]();
+      }
     }
   }
 }
