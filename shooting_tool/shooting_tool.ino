@@ -3,17 +3,6 @@
 
 M5Canvas canvas(&M5Cardputer.Display);
 
-// === TOOL HANDLER TYPE ===
-typedef void (*ToolHandler)();
-
-// === FORWARD DECLARATIONS ===
-void resetAll();
-
-// === TOOL HANDLER ARRAY ===
-ToolHandler menuHandlers[] = {
-  resetAll
-};
-
 enum AppState {
   STATE_MENU,
   STATE_SHOOTING_TOOL,
@@ -23,7 +12,7 @@ AppState appState = STATE_MENU;
 
 int menuIndex = 0;
 const int menuItems = 1;
-String menuOptions[] = { "1. 🧠 Ballistic Calculator" };
+String menuOptions[] = { "Ballistic Calculator" };
 
 String inputBuffer = "> ";
 int currentStep = 0;
@@ -57,6 +46,17 @@ void drawMainMenu() {
   canvas.pushSprite(4, 4);
 }
 
+// === RESET SHOOTING TOOL STATE ===
+void resetAll() {
+  currentStep = 0;
+  elevation = 0.0;
+  windage = 0.0;
+  distance = 0.0;
+  useMOA = true;
+  inputBuffer = "> ";
+  drawInputPrompt("Step 1 of 4:\nEnter bullet impact\n ELEVATION (+/- inches)", "-3.5");
+}
+
 // === DRAW SHOOTING TOOL PROMPT ===
 void drawInputPrompt(const String& prompt, const String& example = "") {
   M5Cardputer.Display.clear();
@@ -77,18 +77,6 @@ void drawInputPrompt(const String& prompt, const String& example = "") {
   M5Cardputer.Display.setTextDatum(middle_center);
   M5Cardputer.Display.setTextColor(GREEN);
   M5Cardputer.Display.drawString(inputBuffer, M5Cardputer.Display.width() / 2, M5Cardputer.Display.height() - 12);
-}
-
-// === RESET SHOOTING TOOL STATE ===
-void resetAll() {
-  appState = STATE_SHOOTING_TOOL;
-  currentStep = 0;
-  elevation = 0.0;
-  windage = 0.0;
-  distance = 0.0;
-  useMOA = true;
-  inputBuffer = "> ";
-  drawInputPrompt("Step 1 of 4:\nEnter bullet impact\n ELEVATION (+/- inches)", "-3.5");
 }
 
 // === SHOW SUMMARY ===
@@ -134,70 +122,77 @@ void loop() {
   M5Cardputer.update();
 
   if (appState == STATE_MENU) {
-    if (M5Cardputer.Keyboard.isKeyPressed(0xDA)) {  // Up arrow
+    // Handle up and down arrow keys for navigation
+    if (M5Cardputer.Keyboard.isKeyPressed(KEY_UP)) {  // Up arrow
       if (menuIndex > 0) menuIndex--;
       drawMainMenu();
       delay(150);
     }
-    if (M5Cardputer.Keyboard.isKeyPressed(0xD9)) {  // Down arrow
+
+    if (M5Cardputer.Keyboard.isKeyPressed(KEY_DOWN)) {  // Down arrow
       if (menuIndex < menuItems - 1) menuIndex++;
       drawMainMenu();
       delay(150);
     }
-    if (M5Cardputer.Keyboard.isKeyPressed(KEY_OPT)) {  // OK button (using KEY_OPT)
-      if (menuIndex < menuItems) {
-        menuHandlers[menuIndex]();  // Call the handler
+
+    // Handle Enter (OK) key press
+    if (M5Cardputer.Keyboard.isKeyPressed(KEY_OK)) {  // OK button
+      if (menuIndex == 0) {
+        appState = STATE_SHOOTING_TOOL;
+        resetAll();
       }
     }
     return;
   }
 
-  // SHOOTING TOOL
-  if (M5Cardputer.Keyboard.isChange()) {
-    if (M5Cardputer.Keyboard.isPressed()) {
-      Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
+  // Handle Ballistic Calculator (Shooting Tool)
+  if (appState == STATE_SHOOTING_TOOL) {
+    if (M5Cardputer.Keyboard.isChange()) {
+      if (M5Cardputer.Keyboard.isPressed()) {
+        Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
 
-      for (auto c : status.word) inputBuffer += c;
+        for (auto c : status.word) inputBuffer += c;
 
-      if (status.del && inputBuffer.length() > 2)
-        inputBuffer.remove(inputBuffer.length() - 1);
+        if (status.del && inputBuffer.length() > 2)
+          inputBuffer.remove(inputBuffer.length() - 1);
 
-      if (status.enter) {
-        String userInput = inputBuffer.substring(2);
-        inputBuffer = "> ";
+        if (status.enter) {
+          String userInput = inputBuffer.substring(2);
+          inputBuffer = "> ";
 
-        switch (currentStep) {
-          case 0:
-            elevation = userInput.toFloat();
-            drawInputPrompt("Step 2 of 4:\nEnter bullet impact\nWINDAGE (+/- inches)", "+1.2");
-            break;
-          case 1:
-            windage = userInput.toFloat();
-            drawInputPrompt("Step 3 of 4:\nEnter DISTANCE to\ntarget (yards)", "100");
-            break;
-          case 2:
-            distance = userInput.toFloat();
-            drawInputPrompt("Step 4 of 4:\nEnter unit type:\nMOA or MIL", "MOA");
-            break;
-          case 3:
-            userInput.toLowerCase();
-            if (userInput == "moa") useMOA = true;
-            else if (userInput == "mil") useMOA = false;
-            else {
-              drawInputPrompt("Invalid unit.\nPlease type MOA or MIL", "MOA");
+          switch (currentStep) {
+            case 0:
+              elevation = userInput.toFloat();
+              drawInputPrompt("Step 2 of 4:\nEnter bullet impact\nWINDAGE (+/- inches)", "+1.2");
+              break;
+            case 1:
+              windage = userInput.toFloat();
+              drawInputPrompt("Step 3 of 4:\nEnter DISTANCE to\ntarget (yards)", "100");
+              break;
+            case 2:
+              distance = userInput.toFloat();
+              drawInputPrompt("Step 4 of 4:\nEnter unit type:\nMOA or MIL", "MOA");
+              break;
+            case 3:
+              userInput.toLowerCase();
+              if (userInput == "moa") useMOA = true;
+              else if (userInput == "mil") useMOA = false;
+              else {
+                drawInputPrompt("Invalid unit.\nPlease type MOA or MIL", "MOA");
+                return;
+              }
+              showSummary();
+              break;
+            default:
+              resetAll();
               return;
-            }
-            showSummary();
-            break;
-          default:
-            resetAll();
-            return;
+          }
+          currentStep++;
         }
-        currentStep++;
-      }
 
-      M5Cardputer.Display.fillRect(0, M5Cardputer.Display.height() - 28, M5Cardputer.Display.width(), 25, BLACK);
-      M5Cardputer.Display.drawString(inputBuffer, M5Cardputer.Display.width() / 2, M5Cardputer.Display.height() - 12);
+        M5Cardputer.Display.fillRect(0, M5Cardputer.Display.height() - 28, M5Cardputer.Display.width(), 25, BLACK);
+        M5Cardputer.Display.drawString(inputBuffer, M5Cardputer.Display.width() / 2, M5Cardputer.Display.height() - 12);
+      }
     }
   }
 }
