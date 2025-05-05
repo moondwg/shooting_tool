@@ -19,6 +19,7 @@ bool inTool = false;
 void setup() {
   M5.begin();
   M5Cardputer.begin();
+  M5Cardputer.update();
   M5Cardputer.Display.setRotation(1);
   M5Cardputer.Display.setTextSize(1);
   M5Cardputer.Display.setCursor(0, 0);
