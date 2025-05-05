@@ -144,7 +144,7 @@ void loop() {
       drawMainMenu();
       delay(150);
     }
-    if (M5Cardputer.Keyboard.isKeyPressed(KEY_OK)) {  // OK button
+    if (M5Cardputer.Keyboard.isKeyPressed(KEY_OPT)) {  // OK button (using KEY_OPT)
       if (menuIndex < menuItems) {
         menuHandlers[menuIndex]();  // Call the handler
       }
